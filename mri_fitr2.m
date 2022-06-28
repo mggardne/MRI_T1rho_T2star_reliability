@@ -89,6 +89,9 @@ o5 = ones(1,5);         % Column index for variable "ids"
 %   Index 6 - Bone - 1 = femur and 2 = tibia
 %   Index 7 - Layer - 1 = deep and 2 = superficial
 %
+% Note:  Layers for masks and compartment analysis variables (tc/tcp) are:
+%        1 = superficial and 2 = deep.
+%
 t1r_res = zeros(nsubj,nvisit,2,2,2,2,2);
 t1r_npx = zeros(nsubj,nvisit,2,2,2,2,2);
 t1r_rss = zeros(nsubj,nvisit,2,2,2,2,2);
