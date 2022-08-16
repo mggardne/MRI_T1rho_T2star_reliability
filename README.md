@@ -4,3 +4,5 @@ A collection of Matlab M-files for reading Philips DICOM MRI T1rho and T2star kn
 Please see ImageAnalysisPipeline6.pdf for a flowchart for the sequence of execution of Matlab M-files.
 
 Please see the header comments in the M-files.
+
+Note that the data must be in particular directories.
