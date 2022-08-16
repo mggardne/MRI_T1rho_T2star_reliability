@@ -264,13 +264,13 @@ for k = 1:ns
                 'FontSize',12,'FontWeight','bold');
 %
           subplot(2,3,2);
-          imshowpair(vp(:,:,2),reg(:,:,rsl(m)));
+          imshowpair(vp(:,:,1),reg(:,:,rsl(m)));
           xlabel(t,'FontSize',11,'FontWeight','bold');
           title({'3D registered',['Slice ', int2str(rsl(m))]}, ...
                 'FontSize',12,'FontWeight','bold');
 %
           subplot(2,3,3);
-          imshowpair(vp(:,:,2),tf1);
+          imshowpair(vp(:,:,1),tf1);
           xlabel(t2{m},'FontSize',11,'FontWeight','bold');
           title({'2D registered',['Slice ', int2str(rsl(m))]}, ...
                 'FontSize',12,'FontWeight','bold');
@@ -397,13 +397,13 @@ for k = 1:ns
                 'FontSize',12,'FontWeight','bold');
 %
           subplot(2,3,2);
-          imshowpair(vp(:,:,2),reg(:,:,rsl(m)));
+          imshowpair(vp(:,:,1),reg(:,:,rsl(m)));
           xlabel(t,'FontSize',11,'FontWeight','bold');
           title({'3D registered',['Slice ', int2str(rsl(m))]}, ...
                 'FontSize',12,'FontWeight','bold');
 %
           subplot(2,3,3);
-          imshowpair(vp(:,:,2),tf1);
+          imshowpair(vp(:,:,1),tf1);
           xlabel(t2{m},'FontSize',11,'FontWeight','bold');
           title({'2D registered',['Slice ', int2str(rsl(m))]}, ...
                 'FontSize',12,'FontWeight','bold');
@@ -416,13 +416,13 @@ for k = 1:ns
                 'FontSize',12,'FontWeight','bold');
 %
           subplot(2,3,5);
-          imshowpair(vp(:,:,2),reg(:,:,rsl(m)));
+          imshowpair(vp(:,:,1),reg(:,:,rsl(m)));
           xlabel(t,'FontSize',11,'FontWeight','bold');
           title({'3D registered',['Slice ', int2str(rsl(m))]}, ...
                 'FontSize',12,'FontWeight','bold');
 %
           subplot(2,3,6);
-          imshowpair(vp(:,:,2),tf2);
+          imshowpair(vp(:,:,1),tf2);
           xlabel(t2{m},'FontSize',11,'FontWeight','bold');
           title({'2D registered',['Slice ', int2str(rsl(m))]}, ...
                 'FontSize',12,'FontWeight','bold');

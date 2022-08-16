@@ -315,13 +315,11 @@ t2 = array2table(tmr,'VariableNames',colnam2);
 %
 tt = [t1 t2];
 %
-writetable(tt,xlsnam);
+writetable(tt,xlsnam,'WriteMode','replacefile');
 %
 % Close All Windows
 %
 close all;
-%
-return
 %
 % Use Series Descriptions to Find T2* Series
 %

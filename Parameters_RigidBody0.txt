@@ -93,7 +93,7 @@
 // So, in 2D, with 4 resolutions, the following schedule is used:
 //(ImagePyramidSchedule 8 8  4 4  2 2  1 1)
 // And in 3D:
-(ImagePyramidSchedule 32 32 32 16 16 16 8 8 8  4 4 4  2 2 2  1 1 1)
+(ImagePyramidSchedule 8 8 8  4 4 4  2 2 2  1 1 1)
 // You can specify any schedule, for example:
 //(ImagePyramidSchedule 4 4  4 3  2 1  1 1 )
 // Make sure that the number of elements equals the number

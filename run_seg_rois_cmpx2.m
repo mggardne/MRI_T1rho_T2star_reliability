@@ -8,9 +8,10 @@ nsubj = size(rdirs,1);
 rsdirs = {'Visit1'; 'Visit2'};
 nsdir = 2;
 %
-tim = zeros(20,1);      % Time to perform registration
+tim = zeros(20,1);      % Time to create masks
 %
 for kk = 1:nsubj
+% for kk = 10:nsubj
 %
    cd(rdirs{kk});
 %
@@ -19,12 +20,7 @@ for kk = 1:nsubj
       cd(rsdirs{ll});
       tstart = tic;
       pwd
-      if kk==6&&ll==2
-        subj08_AS_V2 = true;           % Use rd_dicomT2s.m to manually run first T2* series (unloaded left leg) for 08-AS on Visit 2
-      else
-        subj08_AS_V2 = false;
-      end
-      rd_dicom;
+      seg_rois_cmpx2;
       close all;
       tim(mm) = toc(tstart);
       cd ..

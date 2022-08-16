@@ -3,9 +3,9 @@
 %                     * Combine SHeeTS 2 Program *
 %
 %          M-File which reads the subject data from different sheets in
-%     the MS-Excel spreadsheet file, Registration_data2.xlsx, and
+%     the MS-Excel spreadsheet file, Registration_data3.xlsx, and
 %     combines the subject data into one sheet in the output MS-Excel
-%     spreadsheet file, Combined_Registration3.xlsx.
+%     spreadsheet file, Combined_Registration5.xlsx.
 %
 %     NOTES:  None.
 %
@@ -17,10 +17,10 @@
 % Input and Output MS-Excel Spreadsheet Files
 %
 ddir = fullfile('Results','NACOB_Final');    % Data directory
-xlsf = 'Registration_data2.xlsx';       % Input spreadsheet file name
+xlsf = 'Registration_data3.xlsx';       % Input spreadsheet file name
 xlsf = fullfile(ddir,xlsf);
 %
-xlsf2 = 'Combined_Registration3.xlsx';  % Output spreadsheet file name
+xlsf2 = 'Combined_Registration5.xlsx';  % Output spreadsheet file name
 xlsf2 = fullfile(ddir,xlsf2);
 %
 % Get Sheets in Input Spreadsheet File

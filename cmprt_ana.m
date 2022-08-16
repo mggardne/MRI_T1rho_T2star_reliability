@@ -13,7 +13,7 @@ function [tc,amp,rss,npx,id,tcpx,amppx,rsspx,nps] = cmprt_ana(v, ...
 %          second dimension being the superficial layer in the first
 %          column and deep layer in the second column and the third
 %          dimension being slices in a cell array of masks with the
-%          first index to regions 1 and 2 and the second index to the
+%          first index to lateral and medial and the second index to the
 %          femur and tibia, MASK, a cell array with the slices within
 %          each compartment, RSLS, the number of slices in each
 %          compartment, NRSLS, vector of spin lock/ echo times, TIME,
@@ -96,7 +96,7 @@ if nargin<8
          ' required!']);
 end
 %
-if nargin<10
+if nargin<9
   t0 = 50;              % Initial estimate of time constant
 end
 %
@@ -125,7 +125,7 @@ tc = zeros(8,1);        % Time constant - T1rho/T2*
 amp = zeros(8,1);       % Amplitude of exponential
 rss = zeros(8,1);       % Sum of squared residuals
 npx = zeros(8,1);       % Number of pixels in regional fit
-id = zeros(8,3,1);      % Columns: 1 - Compartment, 2 - Bone and 3 - Layer
+id = zeros(8,3);        % Columns: 1 - Compartment, 2 - Bone and 3 - Layer
 %
 nps = cell(8,1);        % Number of pixels in each slice
 tcpx = cell(8,1);       % Time constant - T1rho/T2* for each pixel
@@ -167,15 +167,15 @@ for kr = 1:2
 %
 % Loop through Layers
 %
-            for kl = 1:2
+            for kl = 1:2               % 1 - superficial, 2 - deep
                rimgt{kt,kl} = rimg(msk(:,kl,ks))';
-               np(kl,ks) = sum(msk(:,kl,ks));
             end
 %
          end            % End of kt loop - Spin lock/echo times
 %
-         for kl = 1:2
+         for kl = 1:2   % 1 - superficial, 2 - deep
             rimgs{ks,kl} = cat(1,rimgt{:,kl});   % Combine spin lock/echo times
+            np(kl,ks) = sum(msk(:,kl,ks));
          end
          
       end               % End of ks loop - slices loop
@@ -184,7 +184,7 @@ for kr = 1:2
 %
 % Calculate T1rho/T2* for Each Layer
 %
-      for kl = 1:2
+      for kl = 1:2      % 1 - superficial, 2 - deep
 %
          idx = 4*kr+2*kb+kl-6;         % Index to variables
          nps{idx} = np(kl,:);          % Number of pixels in slice
@@ -202,24 +202,26 @@ for kr = 1:2
            xdat = [tl ones(ntime*npx(idx),1)];
            lr = log(r);
            rpl = xdat\lr;
+           rpl = abs(rpl);   % Get magnitude of complex numbers
            t0l = -1/rpl(1);
            if t0l>1&&t0l<100
              rp0 = [exp(rpl(2)); t0l];
-             else
-                rp0 = rp0c;
+           else
+             rp0 = rp0c;
            end
          elseif init<0  % Use weighted least squares for initial constants
            xdat = [tl.*r r];
            lr = log(r);
            rpl = xdat\(lr.*r);
+           rpl = abs(rpl);   % Get magnitude of complex numbers
            t0l = -1/rpl(1);
            if t0l>1&&t0l<100
              rp0 = [exp(rpl(2)); t0l];
-             else
-                rp0 = rp0c;
-           end
-           else                % Use constant initial parameters
+           else
              rp0 = rp0c;
+           end
+         else           % Use constant initial parameters
+           rp0 = rp0c;
          end
 %
 % Nonlinear Least Squares Exponential Fit to Get T1rho/T2* Value
@@ -228,7 +230,7 @@ for kr = 1:2
 %
          tc(idx) = rp(2);              % Time constant - T1rho/T2* 
          amp(idx) = rp(1);             % Amplitude of exponential
-         rss(idx) = err;               % Residual sum of squared
+         rss(idx) = err;               % Residual sum of squares
          id(idx,:) = [ikr ikb 2-kl];   % Compartment, bone and layer IDs
 %
 % Calculate T1rho/T2* for Each Pixel in Each Layer
@@ -243,6 +245,7 @@ for kr = 1:2
            if init==0        % Use linear least squares for initial constants
              xdat = [time ones(ntime,1)];
              rpa = xdat\log(rimgl);
+             rpa = abs(rpa);           % Get magnitude of complex numbers
              t0a = -1./rpa(1,:);
              ampa = exp(rpa(2,:));
              rpa = [ampa; t0a];
@@ -257,6 +260,7 @@ for kr = 1:2
                 xdat = [time.*rimgp rimgp];
                 lr = log(rimgp);
                 rpl = xdat\(lr.*rimgp);
+                rpl = abs(rpl);        % Get magnitude of complex numbers
                 t0l = -1/rpl(1);
                 if t0l>=1&&t0l<=100
                   rpa(:,p) = [exp(rpl(2)); t0l];

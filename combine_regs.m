@@ -20,7 +20,8 @@
 %
 ddir = fullfile('Results','NACOB_Final');   % Data directory
 % xlsf = 'Registration_data.xlsx';      % Input spreadsheet file name
-xlsf = 'Registration_data2.xlsx';      % Input spreadsheet file name
+% xlsf = 'Registration_data2.xlsx';      % Input spreadsheet file name
+xlsf = 'Registration_data3.xlsx';      % Input spreadsheet file name
 xlsf = fullfile(ddir,xlsf);
 %
 % Get Subject Directories and Visit Subdirectories

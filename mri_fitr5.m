@@ -1,29 +1,28 @@
 %#######################################################################
 %
-%                  * MRI FIT Reliability 2 Program *
+%                  * MRI FIT Reliability 5 Program *
 %
 %          M-File which reads the registered MRI data and segmentation 
 %     MAT files and fits a monoexponential to the MRI data as a function
 %     of spin lock or echo times where T1rho or T2* are the time
 %     constants of the fits.  Resulting T1rho and T2* values and summary
 %     statistics are written to the MS-Excel spreadsheet,
-%     mri_fitr2.xlsx, in the "Results\NACOB_Final" directory.
+%     mri_fitr5.xlsx, in the "Results\NACOB_Final5" directory.
+%
+%          Calaculates T1rho and T2* for the entire segmented cartilage. 
 %
 %     NOTES:  1.  Data MAT files must be in subject directories starting
 %             with "MRIR" and visit subdirectories "Visit1" or "Visit2".
 %
 %             2.  T1rho MAT files must start with "T1rho_S" and T2* MAT
 %             files must start with "T2star_S".  Segmentation MAT file
-%             names must contain "rois".  See rd_dicom_m.m and
+%             names must contain "rois".  See rd_dicom.m and
 %             seg_rois_cmp.m.
 %
-%             3.  M-file exp_fun1.m, cmprt_ana.m and cmprt_plt.m must
+%             3.  M-file exp_fun1.m, cmprt_ana5.m and cmprt_plt5.m must
 %             be in the current directory or path.
 %
-%     27-Jan-2022 * Mack Gardner-Morse
-%
-%     16-Jun-2022 * Mack Gardner-Morse * Updated for using ROIs based
-%     on the center of contact and slices in identified compartments.
+%     03-Aug-2022 * Mack Gardner-Morse
 %
 
 %#######################################################################
@@ -45,31 +44,32 @@ fun = @exp_fun1;        % Exponential function
 % Initialize Parameters
 %
 % init = -1;              % Use weighted least squares for starting parameters
-init = 0;               % Use linear least squares for starting parameters
-% init = 1;               % Use fixed starting parameters
-% tr0 = 65;               % Initial T1rho estimate in ms
-tr0 = 80;               % Initial T1rho estimate in ms
+% init = 0;               % Use linear least squares for starting parameters
+init = 1;               % Use fixed starting parameters
+tr0 = 65;               % Initial T1rho estimate in ms
+% tr0 = 80;               % Initial T1rho estimate in ms
 trmx = 100;             % Maximum valid T1rho result
 trmn = 0;               % Minimum valid T1rho result
 ts0 = 35;               % Initial T2* estimate in ms
 tsmx = 100;             % Maximum valid T2* result
 tsmn = 0;               % Minimum valid T2* result
 %
-mxtc = 70;              % Maximum scale on plots
+mxtr = 80;              % Maximum scale on T1rho plots
+mxts = 75;              % Maximum scale on T2* plots
 %
 % Output Directory, Output Files and Output Labels
 %
-resdir = fullfile('Results','NACOB_Final');      % Results directory
+resdir = fullfile('Results','NACOB_Final5');      % Results directory
 %
 ifirst = true;          % First write to file
-xlsnam = 'mri_fitr2.xlsx';             % Results spreadsheet
+xlsnam = 'mri_fitr5.xlsx';             % Results spreadsheet
 xlsnam = fullfile(resdir,xlsnam);      % Include output directory
 hdrs1 = {'Subject' 'Visit' 'Result' 'Leg' 'Load' 'Comprt' 'Bone' ...
          'Layer'};
 hdrs2 = {'Pixels' 'T1R/T2S' 'RSS' 'ValidPix' 'Mean' 'Min' 'Max' ...
          'SD' 'COV'};
 %
-psnam = fullfile(resdir,'mri_fitr_');  % Start of PS file name
+psnam = fullfile(resdir,'mri_fitr5_'); % Start of PS file name
 pstyp = '.ps';          % PS file type
 %
 % Get Subject Directories and Visit Subdirectories
@@ -113,8 +113,7 @@ t2s_nps = cell(nsubj,nvisit,2,2,2,2,2);
 %
 % Loop through Subjects
 %
-% for ks = 1:nsubj
-for ks = 1:1
+for ks = 1:nsubj
 %
 % Get Subject Directory, Name and Number
 %
@@ -126,8 +125,7 @@ for ks = 1:1
 %
 % Loop through Visits
 %
-%    for kv = 1:nvisit
-   for kv = 2:nvisit
+   for kv = 1:nvisit
 %
 % Get Visit Subdirectory, Name and Number
 %
@@ -154,13 +152,16 @@ if ido
       idr = contains(roinams,'roi','IgnoreCase',true);     % Masks
 %
       rhonams = roinams(~idr);         % Image MAT files
+      idv = ~contains(rhonams,'_3');   % Ignore test MAT files
+      rhonams = rhonams(idv);
       nrho = size(rhonams,1);
 %
+      idr = contains(roinams,'rois.mat','IgnoreCase',true);     % Small ROIs
       roinams = roinams(idr);          % ROI MAT files
       nroi = size(roinams,1);
 %
       if nrho~=nroi
-        error([' *** ERROR in mri_fitr2:  Number of T1rho MAT', ...
+        error([' *** ERROR in mri_fitr5:  Number of T1rho MAT', ...
                ' files does not match the number of ROI MAT files!']);
       end
       clear nroi;
@@ -174,8 +175,7 @@ if ido
 %
 % Loop through T1rho MAT Files
 %
-%       for km = 1:nrho
-      for km = [1 nrho]
+      for km = 1:nrho
 %
 % Load Data
 %
@@ -187,8 +187,19 @@ if ido
 %
          idm = contains(roinams,rhonam(1:end-4));     % Get matching file
          roinam = roinams{idm};
-         load(fullfile(rdir,roinam),'maskfrl','maskfrm', ...
-              'masktrl','masktrm','rsll','rslm');
+         load(fullfile(rdir,roinam),'maskf','maskt','rsl','rsll', ...
+              'rslm');
+%
+% Get Lateral and Medial Masks
+%
+         [~,idl] = intersect(rsl,rsll);
+         [~,idm] = intersect(rsl,rslm);
+%
+         maskfl = maskf(:,:,idl);
+         maskfm = maskf(:,:,idm);
+%
+         masktl = maskt(:,:,idl);
+         masktm = maskt(:,:,idm);
 %
 % Parse Series Text for Leg and Load
 %
@@ -214,8 +225,8 @@ if ido
 %
 % Combine Masks into a Cell Array
 %
-         maskl = {maskfrl; masktrl};   % Combine femur and tibia masks
-         maskm = {maskfrm; masktrm};   % Combine femur and tibia masks
+         maskl = {maskfl; masktl};     % Combine femur and tibia masks
+         maskm = {maskfm; masktm};     % Combine femur and tibia masks
          mask = {maskl; maskm};        % Combine compartment masks
 %
 % Combine Region Slices and Compartment Identifier
@@ -261,7 +272,7 @@ if ido
 % Plot Results
 %
          sid = ['Subject ' subjnam];
-         cmprt_plt(v,mask,rsls,nrsls,idt,tcp,nps,mxtc,cmap,sid,psnamf);
+         cmprt_plt(v,mask,rsls,nrsls,idt,tcp,nps,mxtr,cmap,sid,psnamf);
 %
 % Get Statistics on Pixel Results
 %
@@ -305,11 +316,10 @@ if ido
          end
 %
       end               % End of km loop - T1rho MAT file loop
-end                     % End of ido - Skip T1rho?
 %
-save(fullfile(resdir,'mri_fitr2.mat'),'t1r_res','t1r_npx','t1r_rss', ...
-     't1r_respx','t1r_rsspx','t1r_nps');
-return
+      close all;        % Close all plot windows
+%
+end                     % End of ido - Skip T1rho?
 %
 % Get T2* MAT Files in Directory
 %
@@ -318,13 +328,16 @@ return
       idr = contains(roinams,'roi','IgnoreCase',true);     % Masks
 %
       starnams = roinams(~idr);        % Image MAT files
+      idv = ~contains(starnams,'_3');  % Ignore test MAT files
+      starnams = starnams(idv);
       nstar = size(starnams,1);
 %
+      idr = contains(roinams,'rois.mat','IgnoreCase',true);     % Small ROIs
       roinams = roinams(idr);          % ROI MAT files
       nroi = size(roinams,1);
 %
       if nstar~=nroi
-        error([' *** ERROR in mri_fitr2:  Number of T2* MAT files', ...
+        error([' *** ERROR in mri_fitr5:  Number of T2* MAT files', ...
                ' does not match the number of ROI MAT files!']);
       end
       clear nroi;
@@ -349,8 +362,19 @@ return
 %
          idm = contains(roinams,starnam(1:end-4));    % Get matching file
          roinam = roinams{idm};
-         load(fullfile(rdir,roinam),'maskfrl','maskfrm', ...
-              'masktrl','masktrm','rsll','rslm');
+         load(fullfile(rdir,roinam),'maskf','maskt','rsl','rsll', ...
+              'rslm');
+%
+% Get Lateral and Medial Masks
+%
+         [~,idl] = intersect(rsl,rsll);
+         [~,idm] = intersect(rsl,rslm);
+%
+         maskfl = maskf(:,:,idl);
+         maskfm = maskf(:,:,idm);
+%
+         masktl = maskt(:,:,idl);
+         masktm = maskt(:,:,idm);
 %
 % Parse Series Text for Leg and Load
 %
@@ -374,8 +398,8 @@ return
 %
 % Combine Masks into a Cell Array
 %
-         maskl = {maskfrl; masktrl};   % Combine femur and tibia masks
-         maskm = {maskfrm; masktrm};   % Combine femur and tibia masks
+         maskl = {maskfl; masktl};     % Combine femur and tibia masks
+         maskm = {maskfm; masktm};     % Combine femur and tibia masks
          mask = {maskl; maskm};        % Combine compartment masks
 %
 % Combine Region Slices and Compartment Identifier
@@ -408,9 +432,8 @@ return
 %
 % Plot Results
 %
-         mxtc = 65;     % Maximum scale on plots
          sid = ['Subject ' subjnam];
-         cmprt_plt(v,mask,rsls,nrsls,idt,tcp,nps,mxtc,cmap,sid,psnamf);
+         cmprt_plt(v,mask,rsls,nrsls,idt,tcp,nps,mxts,cmap,sid,psnamf);
 %
 % Get Statistics on Pixel Results
 %
@@ -450,13 +473,15 @@ return
 %
       end               % End of km loop - T2* MAT file loop
 %
+      close all;        % Close all plot windows
+%
    end                  % End of kv loop - visits loop
 %
 end                     % End of ks loop - subjects loop
 %
 % Save to MAT File
 %
-save(fullfile(resdir,'mri_fitr2.mat'),'t1r_res','t1r_npx','t1r_rss', ...
+save(fullfile(resdir,'mri_fitr5.mat'),'t1r_res','t1r_npx','t1r_rss', ...
      't1r_respx','t1r_rsspx','t1r_nps','t2s_res','t2s_npx', ...
      't2s_rss','t2s_respx','t2s_rsspx','t2s_nps');
 %

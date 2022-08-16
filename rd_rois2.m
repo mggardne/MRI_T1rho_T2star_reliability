@@ -1,5 +1,5 @@
-function bones = rd_rois(rdir,leg,ld,itroch,irho)
-%RD_ROIS   Reads a particular loaded or unloaded leg sagittal
+function bones = rd_rois2(rdir,leg,ld,itroch,irho)
+%RD_ROIS2  Reads a particular loaded or unloaded leg sagittal
 %          segmentation for the femur and tibia in pixels from CSV
 %          files in a directory.
 %
@@ -10,17 +10,17 @@ function bones = rd_rois(rdir,leg,ld,itroch,irho)
 %          the bone.  BONES.rois.roi(1) is the lateral compartment and
 %          BONES.rois.roi(2) is the medial compartment.
 %
-%          BONES = RD_ROIS(RDIR,LEG,LD) given the directory name in the
+%          BONES = RD_ROIS2(RDIR,LEG,LD) given the directory name in the
 %          string, RDIR, either the character 'L' or 'R' for the left
 %          or right leg in LEG, and either 'LD' or 'UL' for loaded or
 %          unloaded condition in LD, return structure BONES with the
 %          femur and tibia segmented regions of interest (ROIs).
 %
-%          BONES = RD_ROIS(RDIR,LEG,LD,ITROCH) given the
+%          BONES = RD_ROIS2(RDIR,LEG,LD,ITROCH) given the
 %          logical ITROCH, trochlear ROIs are returned in the femur
 %          structure BONES(1).
 %
-%          BONES = RD_ROIS(RDIR,LEG,LD,ITROCH,IRHO) given the
+%          BONES = RD_ROIS2(RDIR,LEG,LD,ITROCH,IRHO) given the
 %          integer IRHO, checks for 'imageno' greater than 96 and
 %          subtracts one (1) from 'imageno', divides by IRHO, and adds
 %          one (1).  This is to account for the digitization on the

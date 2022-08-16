@@ -1,8 +1,8 @@
-function cmprt_plt(v,mask,rsls,nrsls,idt,tcp,nps,mxtc,cmap,txt1,psnam)
-%CMPRT_PLT Plots T1rho/T2* values with the underlying images by slice 
+function cmprt_plt4(v,mask,rsls,nrsls,idt,tcp,nps,mxtc,cmap,txt1,psnam)
+%CMPRT_PLT4  Plots T1rho/T2* values with the underlying images by slice 
 %          within regions of interest (ROIs).
 %
-%          CMPRT_PLT(V,MASK,RSLS,NRSLS,IDT,TCP,NPS) Given a four-
+%          CMPRT_PLT4(V,MASK,RSLS,NRSLS,IDT,TCP,NPS) Given a four-
 %          dimensional matrix of T1/T2 intensities from a MRI image
 %          volume, V, where the first two dimensions are an image, the
 %          third dimension are the slices, and the fourth dimension are
@@ -21,24 +21,24 @@ function cmprt_plt(v,mask,rsls,nrsls,idt,tcp,nps,mxtc,cmap,txt1,psnam)
 %          values with the underlying images by slice within the
 %          regions of interest defined by the MASK.
 %
-%          CMPRT_PLT(V,MASK,RSLS,NRSLS,IDT,TCP,NPS,MXTC,CMAP,TXT1) Given
-%          the maximum plotting value for the color scale, MXTC, a three
-%          color map, CMAP, and a text string for the first line of the
-%          plot title, TXT1, plots the T1rho/T2* values with a color
-%          maximum of MXTC using the color map, CMAP, and using TXT1 for
-%          the first line of the plot title.  The default maximum value
-%          is 70.  The default color map is gray for the image and jet
-%          for the T1rho/T2* values.  The default first line title text
-%          is "Results Plot".
+%          CMPRT_PLT4(V,MASK,RSLS,NRSLS,IDT,TCP,NPS,MXTC,CMAP,TXT1)
+%          Given the maximum plotting value for the color scale, MXTC,
+%          a three color map, CMAP, and a text string for the first
+%          line of the plot title, TXT1, plots the T1rho/T2* values
+%          with a color maximum of MXTC using the color map, CMAP, and
+%          using TXT1 for the first line of the plot title.  The
+%          default maximum value is 70.  The default color map is gray
+%          for the image and jet for the T1rho/T2* values.  The default
+%          first line title text is "Results Plot".
 %
-%          CMPRT_PLT(V,MASK,RSLS,NRSLS,IDT,TCP,NPS,MXTC,CMAP,TXT1,PSNAM)
-%          Given the name for a PS file, PSNAM, prints the plots to the
-%          PS file.  By default, the plots are not printed.
+%          CMPRT_PLT4(V,MASK,RSLS,NRSLS,IDT,TCP,NPS,MXTC,CMAP,TXT1,
+%          PSNAM) Given the name for a PS file, PSNAM, prints the plots
+%          to the PS file.  By default, the plots are not printed.
 %
-%          NOTES:  1.  Plots the pixel output of cmprt_ana.m.  See
-%                  cmprt_ana.m and mri_fitr2.m.
+%          NOTES:  1.  Plots the pixel output of cmprt_ana4.m.  See
+%                  cmprt_ana4.m and mri_fitr4.m.
 %
-%          16-Jun-2022 * Mack Gardner-Morse
+%          02-Aug-2022 * Mack Gardner-Morse
 %
 
 %#######################################################################
@@ -63,7 +63,7 @@ if nargin<9||isempty(cmap)
   cmap = [gmap; jmap];
 end
 %
-if nargin<1||isempty(txt1)
+if nargin<10||isempty(txt1)
   txt1 = 'Results Plot';
 end
 %
@@ -79,7 +79,7 @@ tcmprts = {'Lateral'; 'Medial'};
 %
 % Initialize Arrays
 %
-idxs = [2 2 2];         % Maximum indices for compartment, bone and layer
+idxs = [2 2];           % Maximum indices for compartment and bone
 %
 % Loop through Compartments
 %
@@ -114,22 +114,18 @@ for kr = 1:2
 %
          mskb = mskr{kb};              % Mask for this bone
 %
-% Loop through Layer
+         msk = squeeze(mskb(:,:,ks));  % Mask for this slice
+         msk = squeeze(msk(:,1)|msk(:,2));  % Combine cartilage layers
 %
-         for kl = 1:2   % 1 - superficial and 2 - deep
+         idx = sub2ind(idxs,kb,kr); % Index to T1rho/T2* results
+         npsk = nps{idx};
+         npsks = sum(npsk(1:ks));
+         npsks = (npsks-npsk(ks)+1:npsks)';
 %
-            msk = squeeze(mskb(:,kl,ks));   % Mask for this slice and layer
+         tcpk = tcp{idx};
 %
-            idx = sub2ind(idxs,kl,kb,kr);   % Index to T1rho/T2* results
-            npsk = nps{idx};
-            npsks = sum(npsk(1:ks));
-            npsks = (npsks-npsk(ks)+1:npsks)';
+         rimgr(msk) = tcpk(npsks);  % T1rho/T2* values
 %
-            tcpk = tcp{idx};
-%
-            rimgr(msk) = tcpk(npsks);  % T1rho/T2* values
-%
-         end            % End of kl loop - layers loop
       end               % End of kb loop - bones loop
 %
 % Plot Slice

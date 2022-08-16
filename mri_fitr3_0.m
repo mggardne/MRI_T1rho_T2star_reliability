@@ -1,20 +1,20 @@
 %#######################################################################
 %
-%                  * MRI FIT Reliability 2 Program *
+%                 * MRI FIT Reliability 3 0 Program *
 %
 %          M-File which reads the registered MRI data and segmentation 
 %     MAT files and fits a monoexponential to the MRI data as a function
 %     of spin lock or echo times where T1rho or T2* are the time
 %     constants of the fits.  Resulting T1rho and T2* values and summary
 %     statistics are written to the MS-Excel spreadsheet,
-%     mri_fitr2.xlsx, in the "Results\NACOB_Final" directory.
+%     mri_fitr3_0.xlsx, in the "Results\NACOB_Final" directory.
 %
 %     NOTES:  1.  Data MAT files must be in subject directories starting
 %             with "MRIR" and visit subdirectories "Visit1" or "Visit2".
 %
 %             2.  T1rho MAT files must start with "T1rho_S" and T2* MAT
 %             files must start with "T2star_S".  Segmentation MAT file
-%             names must contain "rois".  See rd_dicom_m.m and
+%             names must contain "rois".  See rd_dicom0.m and
 %             seg_rois_cmp.m.
 %
 %             3.  M-file exp_fun1.m, cmprt_ana.m and cmprt_plt.m must
@@ -45,10 +45,10 @@ fun = @exp_fun1;        % Exponential function
 % Initialize Parameters
 %
 % init = -1;              % Use weighted least squares for starting parameters
-init = 0;               % Use linear least squares for starting parameters
-% init = 1;               % Use fixed starting parameters
-% tr0 = 65;               % Initial T1rho estimate in ms
-tr0 = 80;               % Initial T1rho estimate in ms
+% init = 0;               % Use linear least squares for starting parameters
+init = 1;               % Use fixed starting parameters
+tr0 = 65;               % Initial T1rho estimate in ms
+% tr0 = 80;               % Initial T1rho estimate in ms
 trmx = 100;             % Maximum valid T1rho result
 trmn = 0;               % Minimum valid T1rho result
 ts0 = 35;               % Initial T2* estimate in ms
@@ -62,14 +62,14 @@ mxtc = 70;              % Maximum scale on plots
 resdir = fullfile('Results','NACOB_Final');      % Results directory
 %
 ifirst = true;          % First write to file
-xlsnam = 'mri_fitr2.xlsx';             % Results spreadsheet
+xlsnam = 'mri_fitr3_0.xlsx';           % Results spreadsheet
 xlsnam = fullfile(resdir,xlsnam);      % Include output directory
 hdrs1 = {'Subject' 'Visit' 'Result' 'Leg' 'Load' 'Comprt' 'Bone' ...
          'Layer'};
 hdrs2 = {'Pixels' 'T1R/T2S' 'RSS' 'ValidPix' 'Mean' 'Min' 'Max' ...
          'SD' 'COV'};
 %
-psnam = fullfile(resdir,'mri_fitr_');  % Start of PS file name
+psnam = fullfile(resdir,'mri_fitr3_0_');    % Start of PS file name
 pstyp = '.ps';          % PS file type
 %
 % Get Subject Directories and Visit Subdirectories
@@ -127,7 +127,7 @@ for ks = 1:1
 % Loop through Visits
 %
 %    for kv = 1:nvisit
-   for kv = 2:nvisit
+   for kv = 1:1
 %
 % Get Visit Subdirectory, Name and Number
 %
@@ -152,15 +152,15 @@ if ido
       d = dir(fullfile(rdir,'T1rho_S*.mat'));
       roinams = {d.name}';
       idr = contains(roinams,'roi','IgnoreCase',true);     % Masks
-%
-      rhonams = roinams(~idr);         % Image MAT files
-      nrho = size(rhonams,1);
-%
       roinams = roinams(idr);          % ROI MAT files
       nroi = size(roinams,1);
 %
+      d = dir(fullfile(rdir,'T1rho_S*_3_0.mat'));
+      rhonams = {d.name}';             % Registered image MAT files
+      nrho = size(rhonams,1);
+%
       if nrho~=nroi
-        error([' *** ERROR in mri_fitr2:  Number of T1rho MAT', ...
+        error([' *** ERROR in mri_fitr3_0:  Number of T1rho MAT', ...
                ' files does not match the number of ROI MAT files!']);
       end
       clear nroi;
@@ -174,8 +174,7 @@ if ido
 %
 % Loop through T1rho MAT Files
 %
-%       for km = 1:nrho
-      for km = [1 nrho]
+      for km = 1:nrho
 %
 % Load Data
 %
@@ -185,7 +184,7 @@ if ido
          npix = prod(iszs);  % Number of pixels in an image
          fs = ['S' snt];     % Series number prefaced with a 'S'
 %
-         idm = contains(roinams,rhonam(1:end-4));     % Get matching file
+         idm = contains(roinams,rhonam(1:end-8));     % Get matching file
          roinam = roinams{idm};
          load(fullfile(rdir,roinam),'maskfrl','maskfrm', ...
               'masktrl','masktrm','rsll','rslm');
@@ -307,24 +306,20 @@ if ido
       end               % End of km loop - T1rho MAT file loop
 end                     % End of ido - Skip T1rho?
 %
-save(fullfile(resdir,'mri_fitr2.mat'),'t1r_res','t1r_npx','t1r_rss', ...
-     't1r_respx','t1r_rsspx','t1r_nps');
-return
-%
 % Get T2* MAT Files in Directory
 %
       d = dir(fullfile(rdir,'T2star_S*.mat'));
       roinams = {d.name}';
       idr = contains(roinams,'roi','IgnoreCase',true);     % Masks
-%
-      starnams = roinams(~idr);        % Image MAT files
-      nstar = size(starnams,1);
-%
       roinams = roinams(idr);          % ROI MAT files
       nroi = size(roinams,1);
 %
+      d = dir(fullfile(rdir,'T2star_S*_3_0.mat'));
+      starnams = {d.name}';            % Registered image MAT files
+      nstar = size(starnams,1);
+%
       if nstar~=nroi
-        error([' *** ERROR in mri_fitr2:  Number of T2* MAT files', ...
+        error([' *** ERROR in mri_fitr3_0: Number of T2* MAT files', ...
                ' does not match the number of ROI MAT files!']);
       end
       clear nroi;
@@ -347,7 +342,7 @@ return
               'sns','snt','st','v');
          fs = ['S' snt];     % Series number prefaced with a 'S'
 %
-         idm = contains(roinams,starnam(1:end-4));    % Get matching file
+         idm = contains(roinams,starnam(1:end-8));    % Get matching file
          roinam = roinams{idm};
          load(fullfile(rdir,roinam),'maskfrl','maskfrm', ...
               'masktrl','masktrm','rsll','rslm');
@@ -456,7 +451,7 @@ end                     % End of ks loop - subjects loop
 %
 % Save to MAT File
 %
-save(fullfile(resdir,'mri_fitr2.mat'),'t1r_res','t1r_npx','t1r_rss', ...
+save(fullfile(resdir,'mri_fitr3_0.mat'),'t1r_res','t1r_npx','t1r_rss', ...
      't1r_respx','t1r_rsspx','t1r_nps','t2s_res','t2s_npx', ...
      't2s_rss','t2s_respx','t2s_rsspx','t2s_nps');
 %

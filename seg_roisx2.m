@@ -1,11 +1,13 @@
 %#######################################################################
 %
-%        * SEGmentation to Regions of Interest (ROIs) Program *
+%      * SEGmentation to Regions of Interest (ROIs) x2 Program *
 %
 %          M-File which reads the registered MRI data and segmentation 
 %     CSV files to create masks for cylindrical regions of interest in
 %     the lateral and medial tibial compartments.  The masks are saved
 %     in MAT files with the series number and ending in "_rois.mat."
+%
+%          ROI radius is twice (x2) the radius of seg_rois.m.
 %
 %     NOTES:  1.  The registered MRI MAT files must be in subject
 %             directories starting with "MRIR" and either "Visit1" or
@@ -19,7 +21,7 @@
 %             mk2_tri_2d.m, mk2_tri_2df.m, rd_rois.m, rd_roi6.m and
 %             tri2d.m must be in the current directory or path.
 %
-%     27-Jan-2022 * Mack Gardner-Morse
+%     04-Aug-2022 * Mack Gardner-Morse
 %
 
 %#######################################################################
@@ -37,7 +39,7 @@ legds = ['FEM_CART'; 'FEM_BONE'; 'TIB_CART'; 'TIB_BONE'];
 % Parameter for Dividing Cartilage in Half and Radius of Analysis Region
 %
 dist = 7.5;             % Maximum distance to midline in pixels
-rrad = 6.0;             % Radius of analysis region (width of 3 or 4 slices)
+rrad = 12.0;            % Radius of analysis region (width of 6 or 8 slices)
 rrad2 = rrad*rrad;
 itroch = true;          % Read trochlea?
 % itroch = false;         % Read trochlea?
