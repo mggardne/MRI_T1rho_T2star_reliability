@@ -1,4 +1,4 @@
-function [xyz,npts] = fix_gap(xyz)
+function [xyz,idx,npts] = fix_gap(xyz)
 %FIX_GAP   Checks distance between 2-D or 3-D points and ensures the
 %          greatest distance is between the first and last points.
 %
@@ -7,8 +7,11 @@ function [xyz,npts] = fix_gap(xyz)
 %          XYZ, with the points reordered so the greatest distance
 %          between points is between the first and last points.
 %
-%          [XYZ,NPTS] = FIX_GAP(XYZ,TOL,IFLAG) The number of points,
-%          NPTS, may also be returned.
+%          [XYZ,IDX] = FIX_GAP(XYZ) The index, IDX, is returned such
+%          that the returned XYZ = the input XYZ(IDX,:).
+%
+%          [XYZ,IDX,NPTS] = FIX_GAP(XYZ) The number of points, NPTS,
+%          may also be returned.
 %
 %          NOTES:  None.
 %
@@ -42,8 +45,10 @@ d = sum(d.*d,2);        % Distances squared
 %
 % Check Maximum Distance Location and Reorder Points if Necessary
 %
+idx = (1:npts)';
 if idmx~=npts
-  xyz = [xyz(idmx+1:npts,:); xyz(1:idmx,:)];
+  idx = [idmx+1:npts 1:idmx]';
+  xyz = xyz(idx,:);
 end
 %
 return

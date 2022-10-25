@@ -1,16 +1,22 @@
 %#######################################################################
 %
-%   * SEGmentation to Regions of Interest (ROIs) CoMParison Program *
+%    * SEGmentation to Two (2) Regions of Interest (ROIs) Program *
 %
 %          M-File which reads the registered MRI data and segmentation 
 %     CSV files to create masks for cylindrical regions of interest in
-%     the lateral and medial tibial compartments.  The masks are saved
-%     in MAT files with the series number and ending in "_rois2.mat."
-%     The center of the cylindrical ROIs is determined using two
-%     different methods.  One method is based on fixed positions as a
-%     percent of the bony tibia surface and the other method is the
+%     the lateral and medial tibial compartments and corresponding
+%     femoral ROIs.  In addition, masks are created for unloaded
+%     cylindrical regions of interest in the lateral and medial
+%     posterior femoral condyles. The masks are saved in MAT files with
+%     the series number and ending in "_2rois.mat."
+%
+%     The center of the tibial cylindrical ROIs is determined using the
 %     center of the contact area on the tibia and femur cartilage
 %     surface.
+%
+%     The center of the unloaded femoral cylindrical ROIs is determined
+%     as the center of the unloaded posterior condyles.  See CSV file,
+%     UnloadedFemPlugs.csv.
 %
 %     NOTES:  1.  The registered MRI MAT files must be in subject
 %             directories starting with "MRIR" and either "Visit1" or
@@ -19,13 +25,18 @@
 %             2.  T1rho MAT files must start with "T1rho_S" and T2* MAT
 %             files must start with "T2star_S".  See rd_dicom.m.
 %
-%             3.  M-file cr_mask2.m, cr_mask2f.m, fix_gap.m, in_tri2d.m,
+%             3.  The M-files cr_mask2.m, cr_mask2f.m, cyl_lin3.m,
+%             cyl_pwl.m, fix_gap.m, in_tri2d.m,
 %             lsect2.m, lsect2a.m, lsect3.m, lsect4.m, lsect5.m,
 %             midline.m, mk2_tri_2d.m, mk2_tri_2df.m, pts2lin.m,
-%             mk2_tri_2d.m, pts2lin.m, pwl_contct.m, rd_rois.m and
+%             mk2_tri_2d.m, pts2lin.m, pwl_contct.m, rd_rois3.m and
 %             rd_roi6.m must be in the current directory or path.
 %
-%     26-May-2022 * Mack Gardner-Morse
+%             4.  CSV file, UnloadedFemPlugs.csv, must be in the main
+%             MRI reliability study folder, "MRI_Reliability_Study\"
+%             (two directories above the visit subdirectories).
+%
+%     20-Sep-2022 * Mack Gardner-Morse
 %
 
 %#######################################################################
@@ -48,6 +59,30 @@ rrad2 = rrad*rrad;
 itroch = true;          % Read trochlea?
 % itroch = false;         % Read trochlea?
 %
+% Axis Vector and Contact ROIs Rotation Matrix
+%
+xvec = [1 0 0];         % X-vector for defining 3D cylinder coordinate systems
+r1 = eye(3);            % No rotation
+%
+% Read Unloaded Femoral Condyles ROIs Centers and Vectors from CSV File:
+% UnloadedFemPlus.csv
+%
+dat = readmatrix(fullfile('..','..','UnloadedFemPlugs.csv'), ...
+                 'NumHeaderLines',1);
+fidx = dat(:,1:6);      % Indices
+fpts = dat(:,8:10);     % Center points coordinates
+fvec = dat(:,11:13);    % ROIs normals (vectors)
+fvec = fvec./sqrt(sum(fvec.*fvec,2));  % Normalize vectors
+%
+fsubj = fidx(:,1);      % Subject number
+fvisit = fidx(:,2)+1;   % Visit number
+fres = fidx(:,3);       % T1rho = 0 and T2* = 1
+fleg = fidx(:,4);       % Leg
+fload = fidx(:,5);      % Load
+fcmprt = fidx(:,6)+1;   % Compartment
+%
+clear dat fidx;
+%
 % Compartment Labels
 %
 cmprt = {'Lateral'; 'Medial'};
@@ -61,16 +96,24 @@ dirstr = dirstr{end-1};
 dirstr = split(dirstr,' ');
 dirstr = [dirstr{end} ' - ' vstr];
 %
-iskip = true;
-% iskip = false;
-if ~iskip
+% Get Subject and Visit Indices
+%
+subj = eval(dirstr(1:2));
+fidx = find(fsubj==subj);
+%
+vnum = eval(dirstr(end));
+fv = find(fvisit==vnum);
+%
+fidx = intersect(fidx,fv);
 %
 % T1rho
 %
-id5m = 1;               % Use first spin lock time for plots
 rdir = 'RHO';           % Directory for T1rho segmentations
+id5m = 1;               % Use first spin lock time for plots
 thresh = 1.953125;      % Four (4) pixels = 4*0.48828125 = 1.953125
 % threshs = num2str(thresh,'%.3f');      % Threshold as a string
+fr = find(fres==0);
+fids = intersect(fidx,fr);             % Subject, visit and T1rho analysis
 %
 % Get T1rho MAT Files in Directory
 %
@@ -82,9 +125,8 @@ nmat = size(mnams,1);
 %
 % Loop through T1rho MAT Files
 %
-for m = 1:nmat
-% for m = 4:nmat
-% for m = 1
+% for m = 1:nmat
+for m = 1:1
 %
    mnam = mnams{m};
    load(mnam);
@@ -94,19 +136,27 @@ for m = 1:nmat
 %
    if strcmpi(st(1),'L')
      leg = 'L';
+     fl = find(fleg==0);
    else
      leg = 'R';
+     fl = find(fleg==1);
    end
+%
+   fids = intersect(fids,fl);          % Include index to leg
 %
    if contains(st,'Load','IgnoreCase',true)
      ld = 'LD';
+     fl = find(fload==1);              % Loaded
    else
      ld = 'UL';
+     fl = find(fload==0);              % Unloaded
    end
+%
+   fids = intersect(fids,fl);          % Include index to load
 %
 % Read ROIs
 %
-   brois = rd_rois(rdir,leg,ld,itroch,4);
+   brois = rd_rois3(rdir,leg,ld,itroch,4);
 %
 % Get Femur Slices
 %
@@ -125,26 +175,18 @@ for m = 1:nmat
    rslmn = min(rslb);   % Tibia bone minimum slice
    rslmx = max(rslb);   % Tibia bone maximum slice
 %
-% Get Slices Within RRAD of the 20% and 80% Width of Tibia Bone
-%
-   rslctrs = rslmn+(rslmx-rslmn).*[0.2 0.8];     % 1st column = 20%, 2nd column = 80%
-   rslc3 = rslctrs*1.5; % Slice thickness = 1.5 mm
-   rsl3 = 1.5*rsl;      % Slice thickness = 1.5 mm
-%
-   idx = (rsl3>rslc3-rrad)&(rsl3<rslc3+rrad);    % 1st column = 20%, 2nd column = 80%
-   rsl1 = rsl(idx(:,1));               % First compartment slices at 20%
-   rsl2 = rsl(idx(:,2));               % Second compartment slices at 80%
-   regpx = zeros(2);    % Minimum and maximum pixel coordinates for both lateral/medial regions
-   regpx(1,:) = iszs(1);     % Minimums
-%
 % Loop through ROI Slices, Plot ROIs and Generate Masks for Each Slice
 %
-   pnam1 = [fs '_ROIs1.ps'];           % ROI lines print file name
-   pnam2 = [fs '_ROIs2.ps'];           % ROI areas print file name
-   pnam3 = [fs '_ROIs3.ps'];           % ROI regions print file name
+   pnam1 = [fs '_2ROIs1.ps'];          % ROI lines print file name
+   pnam2 = [fs '_2ROIs2.ps'];          % ROI areas print file name
+   pnam3 = [fs '_2ROIs3.ps'];          % ROI regions cylinders print file name
+   pnam4 = [fs '_2ROIs3.ps'];          % ROI regions masks print file name
 %
    f = cell(2,nrsl);    % Femur coordinates (1 - cartilage, 2 - bone)
    t = cell(2,nrsl);    % Tibia coordinates (1 - cartilage, 2 - bone)
+%
+   f3 = cell(2,nrsl);   % Femur coordinates (1 - cartilage, 2 - bone)
+   t3 = cell(2,nrsl);   % Tibia coordinates (1 - cartilage, 2 - bone)
 %
    ibone = false(nrsl,2);              % Bone exists? (1 - femur, 2 - tibia)
    icmprt = ones(nrsl,1);              % Tibal compartments (1 - lateral, 2 - medial)
@@ -155,7 +197,9 @@ for m = 1:nmat
    cid = cell(nrsl,1);                 % Index to tibia contact points
    cdatt = cell(nrsl,1);               % Tibia contact points
    cdatf = cell(nrsl,1);               % Femur contact points
-   ys = cell(nrsl,1);   % Y coordinates for contact points
+%
+   xyz2 = zeros(2,3);   % Unloaded posterior femoral center points
+   vec2 = zeros(2,3);   % Unloaded posterior femoral normal vectors
 %
 % Loop through Tibia Slices
 %
@@ -191,15 +235,21 @@ for m = 1:nmat
               else
                 nc = 2;
               end
-              for n = 1:nc    % Loop through compartments - lateral =1, medial = 2 and trochlea = 3
+              for n = 1:nc   % Loop through compartments - lateral = 1, medial = 2 and trochlea = 3
                  idxs = brois(lb).rois(lc).roi(n).imageno==slk;
                  if any(idxs)
-                   dat = cell2mat(brois(lb).rois(lc).roi(n).data(idxs)');
-                   dat = fix_gap(dat);
+                   dat = cell2mat( ...
+                                 brois(lb).rois(lc).roi(n).data(idxs)');
+                   dat3 = cell2mat( ...
+                                brois(lb).rois(lc).roi(n).data3(idxs)');
+                   [dat,idx] = fix_gap(dat);
+                   dat3 = dat3(idx,:);
                    if lb==1
-                     f{lc,k} = dat;  % Femur
+                     f{lc,k} = dat;    % Femur
+                     f3{lc,k} = dat3;  % Femur
                    else
-                     t{lc,k} = dat;  % Tibia
+                     t{lc,k} = dat;    % Tibia
+                     t3{lc,k} = dat3;  % Tibia
                      icmprt(k) = n;
                    end
                    lh(idxl) = plot(dat(:,1),dat(:,2),lt(idxl,:));
@@ -215,12 +265,19 @@ for m = 1:nmat
          end
       end               % End of lb loop - femur/tibia loop
 %
+% Get Transform Parameters
+% Scale, s, Rotation Matrix, r, and Translation Vector, tv.
+%
+      if k==1
+        [~,~,r,tv] = trnsf2pixel(f3{2,k},f{2,k},f3{2,k});
+        s = 1./pspcs(1);               % Scale
+      end
+%
 % Get Contact Points
 %
-      [cid{k},cdatf{k}] = pwl_contct(f{1,k},t{1,k},thresh);
+      [cid{k},cdatf{k}] = pwl_contct(f3{1,k},t3{1,k},thresh);
       if ~isempty(cid{k})
-        cdatt{k} = t{1,k}(cid{k},:);
-        ys{k} = repmat(rsl3(k),size(cdatt{k},1),1);
+        cdatt{k} = t3{1,k}(cid{k},:);
       end
 %
 % Add Legends and Print Slice Plots
@@ -272,271 +329,227 @@ for m = 1:nmat
         print('-dpsc2','-r600','-fillpage','-append',pnam2);
       end
 %
-% Check for Region Slices
-%
-      if any(rsl1==slk)||any(rsl2==slk)
-        if any(rsl1==slk)
-          icol = 1;
-        else
-          icol = 2;
-        end
-        dat2 = t{2,k}(:,1);
-        xmn = min(dat2);
-        xmx = max(dat2);
-        if xmn<regpx(1,icol)
-          regpx(1,icol) = xmn;
-        end
-        if xmx>regpx(2,icol)
-          regpx(2,icol) = xmx;
-        end
-      end
-%
    end                  % End of k loop - tibia slices
 %
 % Close Slice Plots
 %
    close all;
 %
-% Get Centers of Regions
-%
-   rctrx = regpx(1,:)'+diff(regpx)'/2;
-   rctrx3 = rctrx*pspcs(1);
-%
-% Get Centers of ROIs from the Contact Points
+% Get Centers of ROIs from the Tibial Contact Points
 %
    ilat = icmprt==1;    % Lateral compartment
-   xzl = cell2mat(cdatt(ilat))*pspcs(1);    % Lateral XZ coordinates - convert to mm
-   xzm = cell2mat(cdatt(~ilat))*pspcs(1);   % Medial XZ coordinates - convert to mm
+   xyzls = cell2mat(cdatt(ilat));      % Lateral tibia XYZ coordinates in mm
+   xyzms = cell2mat(cdatt(~ilat));     % Medial tibia XYZ coordinates in mm
 %
 %    idv = ~cellfun('isempty',cdatt);
 %    nt = cellfun('size',cdatt,1);       % Number of contact points on each slice
 %
-   yl = cell2mat(ys(ilat));            % Lateral Y coordinates
-   ym = cell2mat(ys(~ilat));           % Medial Y coordinates
+   xyz1(2,:) = mean(xyzms);            % Center of medial contact ROI
+   xyz1(1,:) = mean(xyzls);            % Center of lateral contact ROI
+   vec1 = repmat([0 0 1],2,1);         % Cylinder axis is inferior-superior in MRI coordinate system
 %
-   xyzls = [xzl(:,1) yl xzl(:,2)];     % 3D lateral contact points
-   xyzl = mean(xyzls);                 % Center of lateral contact ROI
-   xyzms = [xzm(:,1) ym xzm(:,2)];     % 3D medial contact points
-   xyzm = mean(xyzms);                 % Center of medial contact ROI
+% Get Centers and Axial Vectors of Posterior Femoral ROIs
+% Row 1 -> Lateral, and Row 2 -> Medial
 %
-% Get Slices Within RRAD of the Contact Points ROIs
+   idc2 = fcmprt(fids);
+   xyz2(idc2,:) = fpts(fids,:);        % Centers of cylinders
+   vec2(idc2,:) = fvec(fids,:);        % Cylinder axes
 %
-   idxl = (rsl3>xyzl(2)-rrad)&(rsl3<xyzl(2)+rrad);    % Lateral
-   rsll = rsl(idxl);    % Lateral compartment slices
-   idxm = (rsl3>xyzm(2)-rrad)&(rsl3<xyzm(2)+rrad);    % Medial
-   rslm = rsl(idxm);    % Medial compartment slices
+% Transform Cartilage and Femoral Segmentations to ROI Cylinders Axes
+%
+   ft1 = cell(2,1);     % Loaded ROIs femur-tibia bone transformed (1 - lateral, 2 - medial)
+   r2 = zeros(3,3,2);   % Rotation matrix to cylinders axes
+   ft2 = cell(2,1);     % Unloaded ROIs femur transformed (1 - lateral, 2 - medial)
+%
+   for l = 1:2          % Loop through compartments
+      ilat = icmprt==l;
+      ft1{l} = coord_tf(xyz1(l,:),r1,[f3(2,ilat); t3(2,ilat)]);
+      r2(:,:,l) = vec2rot3d(vec2(l,:),xvec);
+      ft2{l} = coord_tf(xyz2(l,:),r2(:,:,l),f3(:,ilat));
+   end
+%
+% Index to Compartment Slices
+%
+   islc = zeros(nrsl,1);
+%
+   idcl = find(icmprt==1);             % Lateral compartment
+   ncl = size(idcl,1);
+   islc(idcl) = (1:ncl)';
+%
+   idcl = find(icmprt==2);             % Medial compartment
+   ncl = size(idcl,1);
+   islc(idcl) = (1:ncl)';
 %
 %  Setup Figure
 %
    hf3 = figure;
    orient landscape;
+%
+% Plot Cylinders
+%
+   [xc,yc,zc] = cylinder(rrad*ones(4,1),72);
+   zc = 45*zc-15;       % Scale and translate Z coordinates
+%
+   hs = gobjects(4,1);  % Subplot handles
+%
+   hs(1) = subplot(2,2,1);   % Lateral loaded ROI
+   plot3(xc,yc,zc,'k-');
    hold on;
+   plot3(xc',yc',zc','k-');
+   axis equal;
+   zlabel('Z (mm)','FontSize',11,'FontWeight','bold');
+   title('Lateral Loaded ROI','FontSize',14,'FontWeight','bold');
 %
-% Get Compartment for Each Center
+   hs(2) = subplot(2,2,2);   % Medial loaded ROI
+   plot3(xc,yc,zc,'k-');
+   hold on;
+   plot3(xc',yc',zc','k-');
+   axis equal;
+   zlabel('Z (mm)','FontSize',11,'FontWeight','bold');
+   title('Medial Loaded ROI','FontSize',14,'FontWeight','bold');
 %
-   ksl = rsl==rsl1(1);
-   irsl1 = icmprt(ksl);
-   ksl = rsl==rsl2(end);
-   irsl2 = icmprt(ksl);
+   zc = zc-15;          % Translate Z coordinates
+   hs(3) = subplot(2,2,3);   % Lateral unloaded ROI
+   plot3(xc,yc,zc,'k-');
+   hold on;
+   plot3(xc',yc',zc','k-');
+   axis equal;
+   zlabel('Z (mm)','FontSize',11,'FontWeight','bold');
+   title('Lateral Unloaded ROI','FontSize',14,'FontWeight','bold');
+%
+   hs(4) = subplot(2,2,4);   % Medial unloaded ROI
+   plot3(xc,yc,zc,'k-');
+   hold on;
+   plot3(xc',yc',zc','k-');
+   axis equal;
+   zlabel('Z (mm)','FontSize',11,'FontWeight','bold');
+   title('Medial Unloaded ROI','FontSize',14,'FontWeight','bold');
 %
 % Loop through the Slices to Define Analysis Regions
 %
-   id1 = 0;
-   id2 = 0;
-   idl = 0;
-   idm = 0;
-   ifirst1 = true;
-   ifirst2 = true;
+   irsl1 = false(nrsl,2);    % Contact ROI on slice (column 1 - lateral, column 2 - medial)
+   irsl2 = false(nrsl,2);    % Posterior ROI on slice
 %
-   nrsl1 = size(rsl1,1);
-   nrsl2 = size(rsl2,1);
-   nrsll = size(rsll,1);     % Number of lateral slices in contact ROI
-   nrslm = size(rslm,1);     % Number of medial slices in contact ROI
-%
-   sllim1 = zeros(nrsl1,2);  % Column 1 - minimum, column 2 - maximum
-   sllim2 = zeros(nrsl2,2);  % Column 1 - minimum, column 2 - maximum
-   slliml = zeros(nrsll,2);  % Column 1 - minimum, column 2 - maximum
-   sllimm = zeros(nrslm,2);  % Column 1 - minimum, column 2 - maximum
+   maskr1 = false(npxt,2,nrsl);        % Mask for loaded ROI
+   maskr2 = false(npxt,2,nrsl);        % Mask for unloaded ROI
 %
    for k = 1:nrsl       % Loop through slices
-      slk = rsl(k);
-      if ibone(k,2)
-        xyzc = t{1,k}*pspcs(1);        % Assumes square pixels
-        npts = size(xyzc,1);
-        xyzc = [xyzc(:,1) repmat(1.5*slk,npts,1) xyzc(:,2)];
-        xyzb = t{2,k}*pspcs(1);        % Assumes square pixels
-        npts = size(xyzb,1);
-        xyzb = [xyzb(:,1) repmat(1.5*slk,npts,1) xyzb(:,2)];
-        figure(hf3);
-        plot3(xyzb(:,1),xyzb(:,2),xyzb(:,3),lt(4,:),'LineWidth',1);
-        plot3(xyzc(:,1),xyzc(:,2),xyzc(:,3),lt(3,:),'LineWidth',1);
-        if any(rsl1==slk)||any(rsl2==slk)
-          if any(rsl1==slk)
-            icmp = 1;
-          else
-            icmp = 2;
-          end
-          rctrz = mean(xyzb(:,3));
-          rctr = [rctrx3(icmp) rslc3(icmp) rctrz];
-          dy = xyzb(1,2)-rctr(:,2);
-          dy2 = dy*dy;
-          dx = sqrt(rrad2-dy2);
-          if any(rsl1==slk)
-            id1 = id1+1;
-            sllim1(id1,:) = [rctrx3(icmp)-dx rctrx3(icmp)+dx];
-          else
-            id2 = id2+1;
-            sllim2(id2,:) = [rctrx3(icmp)-dx rctrx3(icmp)+dx];
-          end
 %
-          xyzcf = f{1,k}*pspcs(1);     % Assumes square pixels
-          npts = size(xyzcf,1);
-          if npts>0
-            xyzcf = [xyzcf(:,1) repmat(1.5*slk,npts,1) xyzcf(:,2)];
-            plot3(xyzcf(:,1),xyzcf(:,2),xyzcf(:,3),lt(1,:), ...
-                  'LineWidth',1);
-          end
+% Find Lateral and Medial Loaded and Unloaded ROIs on Slice
 %
-          xyzbf = f{2,k}*pspcs(1);     % Assumes square pixels
-          npts = size(xyzbf,1);
-          xyzbf = [xyzbf(:,1) repmat(1.5*slk,npts,1) xyzbf(:,2)];
-          plot3(xyzbf(:,1),xyzbf(:,2),xyzbf(:,3),lt(2,:), ...
-                'LineWidth',1);
+      l = icmprt(k);    % Compartments
+      ks = islc(k);
 %
-          if icmp==1&&ifirst1
-            plot3(rctr(:,1),rctr(:,2),rctr(:,3),'ms','LineWidth',1);
-            [xp,yp,zp] = cylinder(repmat(rrad,4,1),72);
-            xp1 = xp+rctr(1);
-            yp1 = yp+rctr(2);
-            zp1 = -20.0*zp+rctr(3);
+% Get Coordinates for Both Lines
 %
-            if icmprt(k)>1
-              plot3(xp1,yp1,zp1,'g-','Color',[0 0.6 0],'LineWidth',1);
-              plot3(xp1',yp1',zp1','g-','Color',[0 0.6 0], ...
-                    'LineWidth',1);
+      fb1 = ft1{l}{1,ks};    % Slice segmentations in loaded ROI coordinates
+      tb1 = ft1{l}{2,ks};
 %
-              plot3(xyzm(:,1),xyzm(:,2),xyzm(:,3),'ks');   % ROI center
-              plot3(xyzms(:,1),xyzms(:,2),xyzms(:,3),'co');     % Contact points
-              xp = xp+xyzm(1);
-              yp = yp+xyzm(2);
-              zp = -20.0*zp+xyzm(3);
-              plot3(xp,yp,zp,'g-','Color',[0 0.8 0],'LineWidth',1);
-              plot3(xp',yp',zp','g-','Color',[0 0.8 0],'LineWidth',1);
-            else
-              plot3(xp1,yp1,zp1,'b-','Color',[0 0 0.75],'LineWidth',1);
-              plot3(xp1',yp1',zp1','b-','Color',[0 0 0.75], ...
-                    'LineWidth',1);
+      fb2 = ft2{l}{1,ks};    % Slice segmentations in unloaded ROI coordinates
+      tb2 = ft2{l}{2,ks};
 %
-              plot3(xyzl(:,1),xyzl(:,2),xyzl(:,3),'ks');   % ROI center
-              plot3(xyzls(:,1),xyzls(:,2),xyzls(:,3),'co');   % Contact points
-              xp = xp+xyzl(1);
-              yp = yp+xyzl(2);
-              zp = -20.0*zp+xyzl(3);
-              plot3(xp,yp,zp,'b-','Color',[0 0.5 1],'LineWidth',1);
-              plot3(xp',yp',zp','b-','Color',[0 0.5 1],'LineWidth',1);
-            end
-            ifirst1 = false;
-          end
+% Get Polygon ROIs in Rotated Coordinates Based on Intersections with
+% Cylindrical ROIs
 %
-          if icmp==2&&ifirst2
-            plot3(rctr(:,1),rctr(:,2),rctr(:,3),'ms','LineWidth',1);
-            [xp,yp,zp] = cylinder(repmat(rrad,4,1),72);
-            xp1 = xp+rctr(1);
-            yp1 = yp+rctr(2);
-            zp1 = -20.0*zp+rctr(3);
+      [xyzp1,xyzif1,xyzit1] = cyl_pwl(fb1,tb1,rrad);
+      [xyzp2,xyzif2,xyzit2] = cyl_pwl(fb2,tb2,rrad);
 %
-            if icmprt(k)>1
-              plot3(xp1,yp1,zp1,'g-','Color',[0 0.6 0],'LineWidth',1);
-              plot3(xp1',yp1',zp1','g-','Color',[0 0.6 0], ...
-                    'LineWidth',1);
+% Intersections with the Loaded Cylindrical ROIs?
 %
-              plot3(xyzm(:,1),xyzm(:,2),xyzm(:,3),'ks');   % ROI center
-              plot3(xyzms(:,1),xyzms(:,2),xyzms(:,3),'co');     % Contact points
-              xp = xp+xyzm(1);
-              yp = yp+xyzm(2);
-              zp = -20.0*zp+xyzm(3);
-              plot3(xp,yp,zp,'g-','Color',[0 0.8 0],'LineWidth',1);
-              plot3(xp',yp',zp','g-','Color',[0 0.8 0],'LineWidth',1);
-            else
-              plot3(xp1,yp1,zp1,'b-','Color',[0 0 0.75],'LineWidth',1);
-              plot3(xp1',yp1',zp1','b-','Color',[0 0 0.75], ...
-                    'LineWidth',1);
+      if ~isempty(xyzp1)
 %
-              plot3(xyzl(:,1),xyzl(:,2),xyzl(:,3),'ks');   % ROI center
-              plot3(xyzls(:,1),xyzls(:,2),xyzls(:,3),'co');     % Contact points
-              xp = xp+xyzl(1);
-              yp = yp+xyzl(2);
-              zp = -20.0*zp+xyzl(3);
-              plot3(xp,yp,zp,'b-','Color',[0 0.5 1],'LineWidth',1);
-              plot3(xp',yp',zp','b-','Color',[0 0.5 1],'LineWidth',1);
-            end
-            ifirst2 = false;
-          end           % End of if region 2 and first slice in region2
-        end             % End of if slice in region 1 or 2
+        irsl1(k,l) = true;   % Intersection true for this slice and compartment
 %
-        if any(rsll==slk)||any(rslm==slk)
-          if any(rsll==slk)
-            dy = xyzb(1,2)-xyzl(:,2);
-            dy2 = dy*dy;
-            dx = sqrt(rrad2-dy2);
-            idl = idl+1;
-            slliml(idl,:) = [xyzl(:,1)-dx xyzl(:,1)+dx];
-          else
-            dy = xyzb(1,2)-xyzm(:,2);
-            dy2 = dy*dy;
-            dx = sqrt(rrad2-dy2);
-            idm = idm+1;
-            sllimm(idm,:) = [xyzm(:,1)-dx xyzm(:,1)+dx];
-          end
-        end             % End of if slice in lateral or medial region
+% Plot Lines and Polygon
 %
-      end               % End of if tibia bone
+        subplot(hs(l));
+%
+        plot3(fb1(:,1),fb1(:,2),fb1(:,3),'b.-');
+        plot3(tb1(:,1),tb1(:,2),tb1(:,3),'g.-');
+%
+        plot3(fb1(1,1),fb1(1,2),fb1(1,3),'b^');            % Start
+        plot3(fb1(end,1),fb1(end,2),fb1(end,3),'bs');      % End
+%
+        plot3(tb1(1,1),tb1(1,2),tb1(1,3),'g^');            % Start
+        plot3(tb1(end,1),tb1(end,2),tb1(end,3),'gs');      % End
+%
+        plot3(xyzif1(:,1),xyzif1(:,2),xyzif1(:,3),'rs');
+        plot3(xyzit1(:,1),xyzit1(:,2),xyzit1(:,3),'rs');
+%
+        hp = patch(xyzp1(:,1),xyzp1(:,2),xyzp1(:,3),'k');
+        set(hp,'FaceAlpha',0.5);
+        set(hp,'EdgeColor','none');
+%
+% Transform Back to MRI Coordinates
+%
+        xyzpt1 = tf_coord(r1,xyz1(l,:),{xyzp1});
+        xyzpt1 = xyzpt1{1};
+%
+% Transform to Pixel Coordinates
+%
+        xyzpp1 = s*xyzpt1*r+repmat(tv,size(xyzpt1,1),1);
+%
+% Create Mask from Polygon
+%
+        msk = poly2mask(xyzpp1(:,1),xyzpp1(:,2),iszs(1),iszs(2));
+        maskr1(:,l,k) = msk(:);
+%
+      end
+%
+% Intersections with the Unloaded Cylindrical ROIs?
+%
+      if ~isempty(xyzp2)
+%
+        irsl2(k,l) = true;   % Intersection true for this slice and compartment
+%
+% Plot Lines and Polygon
+%
+        subplot(hs(l+2));
+%
+        plot3(fb2(:,1),fb2(:,2),fb2(:,3),'b.-');
+        plot3(tb2(:,1),tb2(:,2),tb2(:,3),'g.-');
+%
+        plot3(fb2(1,1),fb2(1,2),fb2(1,3),'b^');            % Start
+        plot3(fb2(end,1),fb2(end,2),fb2(end,3),'bs');      % End
+%
+        plot3(tb2(1,1),tb2(1,2),tb2(1,3),'g^');            % Start
+        plot3(tb2(end,1),tb2(end,2),tb2(end,3),'gs');      % End
+%
+        plot3(xyzif2(:,1),xyzif2(:,2),xyzif2(:,3),'rs');
+        plot3(xyzit2(:,1),xyzit2(:,2),xyzit2(:,3),'rs');
+%
+        hp = patch(xyzp2(:,1),xyzp2(:,2),xyzp2(:,3),'k');
+        set(hp,'FaceAlpha',0.5);
+        set(hp,'EdgeColor','none');
+%
+% Transform Back to MRI Coordinates
+%
+        xyzpt2 = tf_coord(r2(:,:,l),xyz2(l,:),{xyzp2});
+        xyzpt2 = xyzpt2{1};
+%
+% Transform to Pixel Coordinates
+%
+        xyzpp2 = s*xyzpt2*r+repmat(tv,size(xyzpt2,1),1);
+%
+% Create Mask from Polygon
+%
+        msk = poly2mask(xyzpp2(:,1),xyzpp2(:,2),iszs(1),iszs(2));
+        maskr2(:,l,k) = msk(:);
+%
+      end
+%
    end                  % End of slice loop - k
 %
-   set(gca,'ZDir','reverse');
-   view(3);
-   axis equal;
-   title({dirstr; [fs ' - T1\rho']; 'Blue - Lateral/Green - Medial'}, ...
-          'FontSize',16,'FontWeight','bold');
    print('-dpsc2','-r600','-fillpage',pnam3);
-   view(-90,90);
+%
+   for k = 1:4
+      subplot(hs(k));
+      view(-90,90);
+   end
+%
    print('-dpsc2','-r600','-fillpage','-append',pnam3);
 %
-% Get Region 1 Masks
-%
-   sllim1 = fix(sllim1./pspcs(1));
-   maskfr1 = false(npxt,2,nrsl1);      % Mask for region 1 femoral cartilage
-   masktr1 = false(npxt,2,nrsl1);      % Mask for region 1 tibial cartilage
-%
-   for k = 1:nrsl1
-%
-      slk = rsl1(k);
-      maskr1 = false(iszs);
-      maskr1(:,sllim1(k,1):sllim1(:,2)) = true;
-      maskr1 = repmat(maskr1(:),1,2);
-      id1 = slk==rsl;
-      maskfr1(:,:,k) = maskf(:,:,id1)&maskr1;
-      masktr1(:,:,k) = maskt(:,:,id1)&maskr1;
-%
-   end
-%
-% Get Region 2 Masks
-%
-   sllim2 = fix(sllim2./pspcs(1));
-   maskfr2 = false(npxt,2,nrsl2);      % Mask for region 2 femoral cartilage
-   masktr2 = false(npxt,2,nrsl2);      % Mask for region 2 tibial cartilage
-%
-   for k = 1:nrsl2
-%
-      slk = rsl2(k);
-      maskr2 = false(iszs);
-      maskr2(:,sllim2(k,1):sllim2(:,2)) = true;
-      maskr2 = repmat(maskr2(:),1,2);
-      id2 = slk==rsl;
-      maskfr2(:,:,k) = maskf(:,:,id2)&maskr2;
-      masktr2(:,:,k) = maskt(:,:,id2)&maskr2;
-%
-   end
+keyboard
 %
 % Get Lateral ROI Masks
 %
@@ -578,7 +591,7 @@ for m = 1:nmat
 %
    close all;
 %
-   rslp = unique([rsl1; rsl2; rsll; rslm]);
+   rslp = unique([rsll; rslm]);
    nrslp = size(rslp,1);
 %
    for k = 1:nrslp
@@ -595,40 +608,7 @@ for m = 1:nmat
       orient tall;
       subplot(2,1,1);
 %
-% Plot 20%/80% ROIs on the Top Half of the Page
-%
-      if any(rsl1==slk)||any(rsl2==slk)
-        if any(rsl1==slk)
-          idp = rsl1==slk;
-          mask1 = maskfr1(:,1,idp)|masktr1(:,1,idp);  % Superficial cartilage mask
-          mask2 = maskfr1(:,2,idp)|masktr1(:,2,idp);  % Deep cartilage mask
-          dcmx = 16*cmx/128;
-          img1(mask1) = dcmx;  % Blue - Superficial
-          img1(mask2) = cmx-dcmx;   % Red - Deep
-        else
-          idp = rsl2==slk;
-          mask1 = maskfr2(:,1,idp)|masktr2(:,1,idp);  % Superficial cartilage mask
-          mask2 = maskfr2(:,2,idp)|masktr2(:,2,idp);  % Deep cartilage mask
-          dcmx = 16*cmx/128;
-          img1(mask1) = dcmx;  % Blue - Superficial
-          img1(mask2) = cmx-dcmx;   % Red - Deep
-        end
-      end
-%
-      imagesc(img1);
-      colormap(cmap);
-      caxis([-cmx cmx]);
-      axis image;
-      axis off;
-      title({[fs ' Slice ' int2str(slk)]; [cmprt{idc}, ...
-            ' Compartment']; '20%/80% ROIs'}, ...
-            'FontSize',12,'FontWeight','bold');
-%
-% Plot Contact ROIs on the Bottom Half of the Page
-%
-      img1 = img-cmx-1;
-%
-      subplot(2,1,2);
+% Plot Contact ROIs on the Top Half of the Page
 %
       if any(rsll==slk)||any(rslm==slk)
         if any(rsll==slk)
@@ -653,26 +633,28 @@ for m = 1:nmat
       caxis([-cmx cmx]);
       axis image;
       axis off;
-      title('Contact Points ROIs','FontSize',12,'FontWeight','bold');
+      title({[fs ' Slice ' int2str(slk)]; [cmprt{idc}, ...
+            ' Compartment']; 'T1\rho Contact Points ROIs'}, ...
+            'FontSize',12,'FontWeight','bold');
 %
-      print('-dpsc2','-r600','-fillpage','-append',pnam3);
+      print('-dpsc2','-r600','-fillpage','-append',pnam4);
 %
    end
 %
 % Save Masks, ROIS and Slice Information into MAT File
 % Note maskp and p are empty/false.
 %
-   savnam = [mnam(1:end-4) '_rois.mat'];
-   save(savnam,'f','ibone','icmprt','irsl1','irsl2','maskf', ...
-               'maskfr1','maskfr2','maskfrl','maskfrm','maskt', ...
-               'masktr1','masktr2','masktrl','masktrm','brois', ...
-               'rsl','rsl1','rsl2','rsll','rslm','t');
+   savnam = [mnam(1:end-4) '_2rois.mat'];
+   save(savnam,'f','ibone','icmprt','maskf', ...
+               'maskfrl','maskfrm','maskt', ...
+               'masktrl','masktrm','brois', ...
+               'rsl','rsll','rslm','t');
 %
    close all;
 %
 end                     % End of m loop - MAT file loop
 %
-end                     % End of if skip RHO
+return
 %
 % T2star
 %
@@ -680,6 +662,8 @@ rdir = 'T2S';           % Directory for T2* segmentations
 id5 = repmat(3,4,1);    % Default echo time for segmentations
 thresh = 1.75;          % Four (4) pixels = 4*0.4375 = 1.75
 % threshs = num2str(thresh,'%.3f');      % Threshold as a string
+fr = find(fres==1);
+fids = intersect(fidx,fr);             % Subject, visit and T2* analysis
 %
 % Get T2* MAT Files in Directory
 %
@@ -691,9 +675,8 @@ nmat = size(mnams,1);
 %
 % Loop through T2* MAT Files
 %
-for m = 1:nmat
-% for m = 4:nmat
-% for m = 2:2
+% for m = 1:nmat
+for m = 1:1
 %
    mnam = mnams{m};
    load(mnam);
@@ -708,15 +691,23 @@ for m = 1:nmat
 %
    if strcmpi(st(1),'L')
      leg = 'L';
+     fl = find(fleg==0);
    else
      leg = 'R';
+     fl = find(fleg==1);
    end
+%
+   fids = intersect(fids,fl);          % Include index to leg
 %
    if contains(st,'Load','IgnoreCase',true)
      ld = 'LD';
+     fl = find(fload==1);              % Loaded
    else
      ld = 'UL';
+     fl = find(fload==0);              % Unloaded
    end
+%
+   fids = intersect(fids,fl);          % Include index to load
 %
 % Read ROIs
 %
@@ -735,27 +726,16 @@ for m = 1:nmat
    rsl = intersect(rslc,rslb);         % Ensure unique slices in sorted order
    rsl = intersect(rsl,rslf);          % Ensure femur and tibia slices
    nrsl = size(rsl,1);
+   rsl3 = 2.0*rsl;      % Slice thickness = 2 mm
 %
    rslmn = min(rslb);   % Tibia bone minimum slice
    rslmx = max(rslb);   % Tibia bone maximum slice
 %
-% Get Slices Within RRAD of the 20% and 80% Width of Tibia Bone
-%
-   rslctrs = rslmn+(rslmx-rslmn).*[0.2 0.8];     % 1st column = 20%, 2nd column = 80%
-   rslc3 = rslctrs*2.0; % Slice thickness = 2 mm
-   rsl3 = 2.0*rsl;      % Slice thickness = 2 mm
-%
-   idx = (rsl3>rslc3-rrad)&(rsl3<rslc3+rrad);    % 1st column = 20%, 2nd column = 80%
-   rsl1 = rsl(idx(:,1));               % First compartment slices at 20%
-   rsl2 = rsl(idx(:,2));               % Second compartment slices at 80%
-   regpx = zeros(2);    % Minimum and maximum pixel coordinates for both lateral/medial regions
-   regpx(1,:) = iszs(1);     % Minimums
-%
 % Loop through ROI Slices, Plot ROIs and Generate Masks for Each Slice
 %
-   pnam1 = [fs '_ROIs1.ps'];           % ROI lines print file name
-   pnam2 = [fs '_ROIs2.ps'];           % ROI areas print file name
-   pnam3 = [fs '_ROIs3.ps'];           % ROI regions print file name
+   pnam1 = [fs '_2ROIs1.ps'];          % ROI lines print file name
+   pnam2 = [fs '_2ROIs2.ps'];          % ROI areas print file name
+   pnam3 = [fs '_2ROIs3.ps'];          % ROI regions print file name
 %
    f = cell(2,nrsl);    % Femur coordinates (1 - cartilage, 2 - bone)
    t = cell(2,nrsl);    % Tibia coordinates (1 - cartilage, 2 - bone)
@@ -886,35 +866,11 @@ for m = 1:nmat
         print('-dpsc2','-r600','-fillpage','-append',pnam2);
       end
 %
-% Check for Region Slices
-%
-      if any(rsl1==slk)||any(rsl2==slk)
-        if any(rsl1==slk)
-          icol = 1;
-        else
-          icol = 2;
-        end
-        dat2 = t{2,k}(:,1);
-        xmn = min(dat2);
-        xmx = max(dat2);
-        if xmn<regpx(1,icol)
-          regpx(1,icol) = xmn;
-        end
-        if xmx>regpx(2,icol)
-          regpx(2,icol) = xmx;
-        end
-      end
-%
    end                  % End of k loop - tibia slices
 %
 % Close Slice Plots
 %
    close all;
-%
-% Get Centers of Regions
-%
-   rctrx = regpx(1,:)'+diff(regpx)'/2;
-   rctrx3 = rctrx*pspcs(1);
 %
 % Get Centers of ROIs from the Contact Points
 %
@@ -946,29 +902,16 @@ for m = 1:nmat
    orient landscape;
    hold on;
 %
-% Get Compartment for Each Center
-%
-   ksl = rsl==rsl1(1);
-   irsl1 = icmprt(ksl);
-   ksl = rsl==rsl2(end);
-   irsl2 = icmprt(ksl);
-%
 % Loop through the Slices to Define Analysis Regions
 %
-   id1 = 0;
-   id2 = 0;
    idl = 0;
    idm = 0;
    ifirst1 = true;
    ifirst2 = true;
 %
-   nrsl1 = size(rsl1,1);
-   nrsl2 = size(rsl2,1);
    nrsll = size(rsll,1);     % Number of lateral slices in contact ROI
    nrslm = size(rslm,1);     % Number of medial slices in contact ROI
 %
-   sllim1 = zeros(nrsl1,2);  % Column 1 - minimum, column 2 - maximum
-   sllim2 = zeros(nrsl1,2);  % Column 1 - minimum, column 2 - maximum
    slliml = zeros(nrsll,2);  % Column 1 - minimum, column 2 - maximum
    sllimm = zeros(nrslm,2);  % Column 1 - minimum, column 2 - maximum
 %
@@ -984,123 +927,57 @@ for m = 1:nmat
         figure(hf3);
         plot3(xyzb(:,1),xyzb(:,2),xyzb(:,3),lt(4,:),'LineWidth',1);
         plot3(xyzc(:,1),xyzc(:,2),xyzc(:,3),lt(3,:),'LineWidth',1);
-        if any(rsl1==slk)||any(rsl2==slk)
-          if any(rsl1==slk)
-            icmp = 1;
-          else
-            icmp = 2;
-          end
-          rctrz = mean(xyzb(:,3));
-          rctr = [rctrx3(icmp) rslc3(icmp) rctrz];
-          dy = xyzb(1,2)-rctr(:,2);
-          dy2 = dy*dy;
-          dx = sqrt(rrad2-dy2);
-          if any(rsl1==slk)
-            id1 = id1+1;
-            sllim1(id1,:) = [rctrx3(icmp)-dx rctrx3(icmp)+dx];
-          else
-            id2 = id2+1;
-            sllim2(id2,:) = [rctrx3(icmp)-dx rctrx3(icmp)+dx];
-          end
+%
+        if any(rsll==slk)||any(rslm==slk)
 %
           xyzcf = f{1,k}*pspcs(1);     % Assumes square pixels
           npts = size(xyzcf,1);
           if npts>0
-            xyzcf = [xyzcf(:,1) repmat(2.0*slk,npts,1) xyzcf(:,2)];
+            xyzcf = [xyzcf(:,1) repmat(1.5*slk,npts,1) xyzcf(:,2)];
             plot3(xyzcf(:,1),xyzcf(:,2),xyzcf(:,3),lt(1,:), ...
                   'LineWidth',1);
           end
 %
           xyzbf = f{2,k}*pspcs(1);     % Assumes square pixels
           npts = size(xyzbf,1);
-          xyzbf = [xyzbf(:,1) repmat(2.0*slk,npts,1) xyzbf(:,2)];
+          xyzbf = [xyzbf(:,1) repmat(1.5*slk,npts,1) xyzbf(:,2)];
           plot3(xyzbf(:,1),xyzbf(:,2),xyzbf(:,3),lt(2,:), ...
                 'LineWidth',1);
 %
-          if icmp==1&&ifirst1
-            plot3(rctr(:,1),rctr(:,2),rctr(:,3),'ms','LineWidth',1);
+          if any(rsll==slk)            % Lateral
+%
+            plot3(xyzl(:,1),xyzl(:,2),xyzl(:,3),'ks');     % ROI center
+            plot3(xyzls(:,1),xyzls(:,2),xyzls(:,3),'co');  % Contact points
             [xp,yp,zp] = cylinder(repmat(rrad,4,1),72);
-            xp1 = xp+rctr(1);
-            yp1 = yp+rctr(2);
-            zp1 = -18.0*zp+rctr(3);
+            xp1 = xp+xyzl(1);
+            yp1 = yp+xyzl(2);
+            zp1 = -20.0*zp+xyzl(3)+5.0;
+            plot3(xp1,yp1,zp1,'b-','Color',[0 0 0.75],'LineWidth',1);
+            plot3(xp1',yp1',zp1','b-','Color',[0 0 0.75],'LineWidth',1);
 %
-            if icmprt(k)>1
-              plot3(xp1,yp1,zp1,'g-','Color',[0 0.6 0],'LineWidth',1);
-              plot3(xp1',yp1',zp1','g-','Color',[0 0.6 0], ...
-                    'LineWidth',1);
-%
-              plot3(xyzm(:,1),xyzm(:,2),xyzm(:,3),'ks');   % ROI center
-              plot3(xyzms(:,1),xyzms(:,2),xyzms(:,3),'co');     % Contact points
-              xp = xp+xyzm(1);
-              yp = yp+xyzm(2);
-              zp = -18.0*zp+xyzm(3);
-              plot3(xp,yp,zp,'g-','Color',[0 0.8 0],'LineWidth',1);
-              plot3(xp',yp',zp','g-','Color',[0 0.8 0],'LineWidth',1);
-            else
-              plot3(xp1,yp1,zp1,'b-','Color',[0 0 0.75],'LineWidth',1);
-              plot3(xp1',yp1',zp1','b-','Color',[0 0 0.75], ...
-                    'LineWidth',1);
-%
-              plot3(xyzl(:,1),xyzl(:,2),xyzl(:,3),'ks');   % ROI center
-              plot3(xyzls(:,1),xyzls(:,2),xyzls(:,3),'co');   % Contact points
-              xp = xp+xyzl(1);
-              yp = yp+xyzl(2);
-              zp = -18.0*zp+xyzl(3);
-              plot3(xp,yp,zp,'b-','Color',[0 0.5 1],'LineWidth',1);
-              plot3(xp',yp',zp','b-','Color',[0 0.5 1],'LineWidth',1);
-            end
-            ifirst1 = false;
-          end
-%
-          if icmp==2&&ifirst2
-            plot3(rctr(:,1),rctr(:,2),rctr(:,3),'ms','LineWidth',1);
-            [xp,yp,zp] = cylinder(repmat(rrad,4,1),72);
-            xp1 = xp+rctr(1);
-            yp1 = yp+rctr(2);
-            zp1 = -18.0*zp+rctr(3);
-%
-            if icmprt(k)>1
-              plot3(xp1,yp1,zp1,'g-','Color',[0 0.6 0],'LineWidth',1);
-              plot3(xp1',yp1',zp1','g-','Color',[0 0.6 0], ...
-                    'LineWidth',1);
-%
-              plot3(xyzm(:,1),xyzm(:,2),xyzm(:,3),'ks');   % ROI center
-              plot3(xyzms(:,1),xyzms(:,2),xyzms(:,3),'co');     % Contact points
-              xp = xp+xyzm(1);
-              yp = yp+xyzm(2);
-              zp = -20.0*zp+xyzm(3);
-              plot3(xp,yp,zp,'g-','Color',[0 0.8 0],'LineWidth',1);
-              plot3(xp',yp',zp','g-','Color',[0 0.8 0],'LineWidth',1);
-            else
-              plot3(xp1,yp1,zp1,'b-','Color',[0 0 0.75],'LineWidth',1);
-              plot3(xp1',yp1',zp1','b-','Color',[0 0 0.75], ...
-                    'LineWidth',1);
-%
-              plot3(xyzl(:,1),xyzl(:,2),xyzl(:,3),'ks');   % ROI center
-              plot3(xyzls(:,1),xyzls(:,2),xyzls(:,3),'co');     % Contact points
-              xp = xp+xyzl(1);
-              yp = yp+xyzl(2);
-              zp = -20.0*zp+xyzl(3);
-              plot3(xp,yp,zp,'b-','Color',[0 0.5 1],'LineWidth',1);
-              plot3(xp',yp',zp','b-','Color',[0 0.5 1],'LineWidth',1);
-            end
-            ifirst2 = false;
-          end           % End of if region 2 and first slice in region2
-        end             % End of if slice in region 1 or 2
-%
-        if any(rsll==slk)||any(rslm==slk)
-          if any(rsll==slk)
             dy = xyzb(1,2)-xyzl(:,2);
             dy2 = dy*dy;
             dx = sqrt(rrad2-dy2);
             idl = idl+1;
             slliml(idl,:) = [xyzl(:,1)-dx xyzl(:,1)+dx];
-          else
+%
+          else          % Medial
+%
+            plot3(xyzm(:,1),xyzm(:,2),xyzm(:,3),'ks');     % ROI center
+            plot3(xyzms(:,1),xyzms(:,2),xyzms(:,3),'co');  % Contact points
+            [xp,yp,zp] = cylinder(repmat(rrad,4,1),72);
+            xp1 = xp+xyzm(1);
+            yp1 = yp+xyzm(2);
+            zp1 = -20.0*zp+xyzm(3)+5.0;
+            plot3(xp1,yp1,zp1,'g-','Color',[0 0.6 0],'LineWidth',1);
+            plot3(xp1',yp1',zp1','g-','Color',[0 0.6 0],'LineWidth',1);
+%
             dy = xyzb(1,2)-xyzm(:,2);
             dy2 = dy*dy;
             dx = sqrt(rrad2-dy2);
             idm = idm+1;
             sllimm(idm,:) = [xyzm(:,1)-dx xyzm(:,1)+dx];
+%
           end
         end             % End of if slice in lateral or medial region
 %
@@ -1115,42 +992,6 @@ for m = 1:nmat
    print('-dpsc2','-r600','-fillpage',pnam3);
    view(-90,90);
    print('-dpsc2','-r600','-fillpage','-append',pnam3);
-%
-% Get Region 1 Masks
-%
-   sllim1 = fix(sllim1./pspcs(1));
-   maskfr1 = false(npxt,2,nrsl1);      % Mask for region 1 femoral cartilage
-   masktr1 = false(npxt,2,nrsl1);      % Mask for region 1 tibial cartilage
-%
-   for k = 1:nrsl1
-%
-      slk = rsl1(k);
-      maskr1 = false(iszs);
-      maskr1(:,sllim1(k,1):sllim1(:,2)) = true;
-      maskr1 = repmat(maskr1(:),1,2);
-      id1 = slk==rsl;
-      maskfr1(:,:,k) = maskf(:,:,id1)&maskr1;
-      masktr1(:,:,k) = maskt(:,:,id1)&maskr1;
-%
-   end
-%
-% Get Region 2 Masks
-%
-   sllim2 = fix(sllim2./pspcs(1));
-   maskfr2 = false(npxt,2,nrsl1);      % Mask for region 2 femoral cartilage
-   masktr2 = false(npxt,2,nrsl1);      % Mask for region 2 tibial cartilage
-%
-   for k = 1:nrsl2
-%
-      slk = rsl2(k);
-      maskr2 = false(iszs);
-      maskr2(:,sllim2(k,1):sllim2(:,2)) = true;
-      maskr2 = repmat(maskr2(:),1,2);
-      id2 = slk==rsl;
-      maskfr2(:,:,k) = maskf(:,:,id2)&maskr2;
-      masktr2(:,:,k) = maskt(:,:,id2)&maskr2;
-%
-   end
 %
 % Get Lateral ROI Masks
 %
@@ -1192,7 +1033,7 @@ for m = 1:nmat
 %
    close all;
 %
-   rslp = unique([rsl1; rsl2; rsll; rslm]);
+   rslp = unique([rsll; rslm]);
    nrslp = size(rslp,1);
 %
    for k = 1:nrslp
@@ -1209,40 +1050,7 @@ for m = 1:nmat
       orient tall;
       subplot(2,1,1);
 %
-% Plot 20%/80% ROIs on the Top Half of the Page
-%
-      if any(rsl1==slk)||any(rsl2==slk)
-        if any(rsl1==slk)
-          idp = rsl1==slk;
-          mask1 = maskfr1(:,1,idp)|masktr1(:,1,idp);  % Superficial cartilage mask
-          mask2 = maskfr1(:,2,idp)|masktr1(:,2,idp);  % Deep cartilage mask
-          dcmx = 16*cmx/128;
-          img1(mask1) = dcmx;  % Blue - Superficial
-          img1(mask2) = cmx-dcmx;   % Red - Deep
-        else
-          idp = rsl2==slk;
-          mask1 = maskfr2(:,1,idp)|masktr2(:,1,idp);  % Superficial cartilage mask
-          mask2 = maskfr2(:,2,idp)|masktr2(:,2,idp);  % Deep cartilage mask
-          dcmx = 16*cmx/128;
-          img1(mask1) = dcmx;  % Blue - Superficial
-          img1(mask2) = cmx-dcmx;   % Red - Deep
-        end
-      end
-%
-      imagesc(img1);
-      colormap(cmap);
-      caxis([-cmx cmx]);
-      axis image;
-      axis off;
-      title({[fs ' Slice ' int2str(slk)]; [cmprt{idc}, ...
-            ' Compartment']; '20%/80% ROIs'}, ...
-            'FontSize',12,'FontWeight','bold');
-%
-% Plot Contact ROIs on the Bottom Half of the Page
-%
-      img1 = img-cmx-1;
-%
-      subplot(2,1,2);
+% Plot Contact ROIs on the Top Half of the Page
 %
       if any(rsll==slk)||any(rslm==slk)
         if any(rsll==slk)
@@ -1267,7 +1075,9 @@ for m = 1:nmat
       caxis([-cmx cmx]);
       axis image;
       axis off;
-      title('Contact Points ROIs','FontSize',12,'FontWeight','bold');
+      title({[fs ' Slice ' int2str(slk)]; [cmprt{idc}, ...
+            ' Compartment']; 'T2* Contact Points ROIs'}, ...
+            'FontSize',12,'FontWeight','bold');
 %
       print('-dpsc2','-r600','-fillpage','-append',pnam3);
 %
@@ -1276,11 +1086,11 @@ for m = 1:nmat
 % Save Masks, ROIs and Slice Information into MAT File
 % Note maskp and p are empty/false.
 %
-   savnam = [mnam(1:end-4) '_rois.mat'];
-   save(savnam,'f','ibone','icmprt','irsl1','irsl2','maskf', ...
-               'maskfr1','maskfr2','maskfrl','maskfrm','maskt', ...
-               'masktr1','masktr2','masktrl','masktrm','brois', ...
-               'rsl','rsl1','rsl2','rsll','rslm','t');
+   savnam = [mnam(1:end-4) '_2rois.mat'];
+   save(savnam,'f','ibone','icmprt','maskf', ...
+               'maskfrl','maskfrm','maskt', ...
+               'masktrl','masktrm','brois', ...
+               'rsl','rsll','rslm','t');
 %
    close all;
 %

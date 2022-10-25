@@ -1,7 +1,7 @@
-function bones = rd_rois2(rdir,leg,ld,itroch,irho)
-%RD_ROIS2  Reads a particular loaded or unloaded leg sagittal
-%          segmentation for the femur and tibia in pixels from CSV
-%          files in a directory.
+function bones = rd_rois3(rdir,leg,ld,itroch,irho)
+%RD_ROIS3  Reads a particular loaded or unloaded leg sagittal
+%          segmentation for the femur and tibia in 2-D pixels and 3-D
+%          mm coordinates from CSV files in a directory.
 %
 %          For creating regions of interest ROIs of knee joint cartilage
 %          for the MRI reliability study.  ROIs are returned in a
@@ -10,17 +10,17 @@ function bones = rd_rois2(rdir,leg,ld,itroch,irho)
 %          the bone.  BONES.rois.roi(1) is the lateral compartment and
 %          BONES.rois.roi(2) is the medial compartment.
 %
-%          BONES = RD_ROIS2(RDIR,LEG,LD) given the directory name in the
+%          BONES = RD_ROIS3(RDIR,LEG,LD) given the directory name in the
 %          string, RDIR, either the character 'L' or 'R' for the left
 %          or right leg in LEG, and either 'LD' or 'UL' for loaded or
 %          unloaded condition in LD, return structure BONES with the
 %          femur and tibia segmented regions of interest (ROIs).
 %
-%          BONES = RD_ROIS2(RDIR,LEG,LD,ITROCH) given the
+%          BONES = RD_ROIS3(RDIR,LEG,LD,ITROCH) given the
 %          logical ITROCH, trochlear ROIs are returned in the femur
 %          structure BONES(1).
 %
-%          BONES = RD_ROIS2(RDIR,LEG,LD,ITROCH,IRHO) given the
+%          BONES = RD_ROIS3(RDIR,LEG,LD,ITROCH,IRHO) given the
 %          integer IRHO, checks for 'imageno' greater than 96 and
 %          subtracts one (1) from 'imageno', divides by IRHO, and adds
 %          one (1).  This is to account for the digitization on the
@@ -42,12 +42,12 @@ function bones = rd_rois2(rdir,leg,ld,itroch,irho)
 %                  file names are ignored as duplicate files.
 %
 %                  6.  Cartilage (SAGAR) CSV files with "_RO" in the
-%                  file names are NOT used in place of the same files
+%                  file names are used in place of the same files
 %                  without "_RO".
 %
-%                  7.  Trochlea option is NOT tested.
+%                  7.  Trochlea option is NOT tested, but seems to work.
 %
-%          07-Jun-2022 * Mack Gardner-Morse 
+%          23-Sep-2022 * Mack Gardner-Morse 
 %
 
 %#######################################################################
@@ -55,7 +55,7 @@ function bones = rd_rois2(rdir,leg,ld,itroch,irho)
 % Check for Inputs
 %
 if (nargin<3)
-  error(' *** ERROR in RD_ROIS:  Three inputs are required!');
+  error(' *** ERROR in RD_ROIS3:  Three inputs are required!');
 end
 %
 if (nargin<4)
@@ -86,12 +86,12 @@ for l = 1:nb
    if any(idx)
      idc = contains(rnams,'SAGAR');
      idx = idx|~idc;
-     rnams = rnams(~idx);
+     rnams = rnams(idx);
    end
    nrfiles = size(rnams,1);
    if nrfiles>2
      fprintf(1,'  %s\n',rnams{:});
-     error(' *** ERROR in RD_ROIS:  Too many CSV files found!');
+     error(' *** ERROR in RD_ROIS3:  Too many CSV files found!');
    end
 %
 % Loop through ROI Files
@@ -104,10 +104,19 @@ for l = 1:nb
       rnam = fullfile(rdir,bdirs(l,:),rnams{k});
 %
       rois(k).name = rnams{k};
-      rois(k).roi = rd_roi6(rnam,true);     % Read pixel coordinates
+%
+      rois(k).roi = rd_roi6(rnam,true);     % Read 2-D pixel coordinates
       if l==1&&~itroch
         rois(k).roi = rois(k).roi(1:2);     % Remove trochlear slices
       end
+      roi3 = rd_roi6(rnam,false);           % Read 3-D mm coordinates
+      if l==1&&itroch
+        [rois(k).roi(1).data3,rois(k).roi(2).data3, ...
+                              rois(k).roi(3).data3] = roi3.data;
+      else
+        [rois(k).roi(1).data3,rois(k).roi(2).data3] = roi3(1:2).data;
+      end
+%
       rois(k).slice = [rois(k).roi.imageno]';
       if any(rois(k).slice>96)&&irho>1
         rois(k).slice = (rois(k).slice-1)./irho+1;

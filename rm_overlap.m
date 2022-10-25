@@ -15,9 +15,9 @@
 %
 %     NOTES:  1.  M-files decomp.m, dis2lin.m, get_csv.m, get_olap.m,
 %             lisect3.m, lisect4a.m, lisect5.m, lsect3.m, lsect4.m,
-%             lsect5.m, mk_contct.m, mxd2lins.m, pts2lin.m, rd_roi6.m,
-%             rd_rois.m, trnsf2mm.m and trnsf2pixel.m must be in the
-%             current directory or path.
+%             lsect5.m, mk_contct.m, mxd2lins.m, parse_csv.m, pts2lin.m,
+%             rd_roi6.m, rd_rois.m, trnsf2mm.m and trnsf2pixel.m must be
+%             in the current directory or path.
 %
 %             2.  Only files with overlaps greater than a minimum
 %             overlap are corrected.  See variable "omin" on line 37.

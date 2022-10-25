@@ -63,7 +63,7 @@ if nargin<9||isempty(cmap)
   cmap = [gmap; jmap];
 end
 %
-if nargin<1||isempty(txt1)
+if nargin<10||isempty(txt1)
   txt1 = 'Results Plot';
 end
 %

@@ -8,8 +8,8 @@
 %     "_RO" in the filename (created by rm_overlap.m):
 %     "007_L_SAGAR_FEM_T2S_LD_V2_AB_RO.csv".
 %
-%     NOTES:  1.  M-files decomp.m and rd_roi6.m must be in the current
-%             directory or path.
+%     NOTES:  1.  M-files decomp.m, parse_csv.m, rd_csv.m, and rd_roi6.m
+%             must be in the current directory or path.
 %
 %             2.  See chk_3d_2d.m for the program that just checks the
 %             3D and 2D coordinates.
