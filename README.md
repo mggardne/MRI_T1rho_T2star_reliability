@@ -6,3 +6,5 @@ Please see ImageAnalysisPipeline6.pdf for a flowchart for the sequence of execut
 Please see the header comments in the M-files.
 
 Note that the data must be in particular directories.
+
+An additional region of interest on the posterior femoral condyles (not in contact with the tibia) was added to the analysis.  Please see ImageAnalysisPipeline7.pdf for a flowchart for the sequence of execution of Matlab M-files.
