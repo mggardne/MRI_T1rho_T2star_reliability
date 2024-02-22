@@ -148,7 +148,8 @@ end
 %
 % Loop through T1rho MAT Files
 %
-for m = 1:nmat
+% for m = 1:nmat
+for m = 4
 %
    mnam = mnams{m};
    load(mnam);
@@ -222,7 +223,8 @@ for m = 1:nmat
 %
 % Loop through Tibia Slices
 %
-   for k = 1:nrsl       % Loop through slices
+%    for k = 1:nrsl       % Loop through slices
+   for k = 6:12         % Loop through slices
 %
 % Get T1 Slice Image
 %
@@ -303,11 +305,13 @@ for m = 1:nmat
 % Add Legends and Print Slice Plots
 %
       legend(lh(idl),legds(idl,:),'Interpreter','none');
-      if k==1
-        print('-dpsc2','-r600','-fillpage',pnam1);
-      else
-        print('-dpsc2','-r600','-fillpage','-append',pnam1);
-      end
+      k
+      pause
+%       if k==1
+%         print('-dpsc2','-r600','-fillpage',pnam1);
+%       else
+%         print('-dpsc2','-r600','-fillpage','-append',pnam1);
+%       end
 %
 % Create Logical Masks for the Cartilage on this Slice
 %
@@ -343,17 +347,19 @@ for m = 1:nmat
       title({dirstr; [fs ' Slice ' int2str(slk)]},'FontSize',16, ...
             'FontWeight','bold');
 %
-      if k==1
-        print('-dpsc2','-r600','-fillpage',pnam2);
-      else
-        print('-dpsc2','-r600','-fillpage','-append',pnam2);
-      end
+%       if k==1
+%         print('-dpsc2','-r600','-fillpage',pnam2);
+%       else
+%         print('-dpsc2','-r600','-fillpage','-append',pnam2);
+%       end
 %
    end                  % End of k loop - tibia slices
 %
+return
+%
 % Close Slice Plots
 %
-   close all;
+%    close all;
 %
 % Get Centers of ROIs from the Tibial Contact Points
 %

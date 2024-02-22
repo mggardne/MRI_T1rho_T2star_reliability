@@ -1,17 +1,19 @@
 %#######################################################################
 %
-%              * MRI FIT Reliability 3 Unloaded Program *
+%              * MRI FIT Reliability 4 Unloaded Program *
 %
 %          M-File which reads the registered MRI data and segmentation 
 %     MAT files and fits a monoexponential to the unloaded MRI data as
 %     a function of spin lock or echo times where T1rho or T2* are the
 %     time constants of the fits.  Resulting T1rho and T2* values and
 %     summary statistics are written to the MS-Excel spreadsheet,
-%     mri_fitr3u1.xlsx (loaded ROIs) and mri_fitr3u2.xlsx (loaded ROIs),
-%     in the "Results\Unloaded_Femur" directory.
+%     mri_fitr4u.xlsx, in the "Results\Unloaded_Femur4" directory.
 %
-%          The unloaded cartilage region of interests are regions on
-%     the posterior femoral condyles.  See seg_2rois.m.
+%          The unloaded (noncontact) cartilage region of interests are
+%     regions on the posterior femoral condyles.  See seg_2rois.m.
+%
+%          This analysis combines the deep and superficial cartilage
+%     layers. 
 %
 %     NOTES:  1.  Data MAT files must be in subject directories starting
 %             with "MRIR" and visit subdirectories "Visit1" or "Visit2".
@@ -21,10 +23,10 @@
 %             names must contain "2rois".  See rd_dicom.m and
 %             seg_2rois.m.
 %
-%             3.  M-file exp_fun1.m, cmprt_ana.m, cmprt_anau.m, and
-%             cmprt_pltu.m must be in the current directory or path.
+%             3.  M-file exp_fun1.m, cmprt_ana4.m, cmprt_ana4u.m, and
+%             cmprt_plt4u.m must be in the current directory or path.
 %
-%     18-Oct-2022 * Mack Gardner-Morse
+%     01-Nov-2022 * Mack Gardner-Morse
 %
 
 %#######################################################################
@@ -61,24 +63,23 @@ mxts = 75;              % Maximum scale on T2* plots
 %
 % Output Directory, Output Files and Output Labels
 %
-resdir = fullfile('Results','Unloaded_Femur');   % Results directory
+resdir = fullfile('Results','Unloaded_Femur4');  % Results directory
 %
 ifirst1 = true;         % First write to file
-xlsnam1 = 'mri_fitr3u1.xlsx';          % Loaded results spreadsheet
+xlsnam1 = 'mri_fitr4u1.xlsx';          % Loaded results spreadsheet
 xlsnam1 = fullfile(resdir,xlsnam1);    % Include output directory
 %
 ifirst2 = true;         % First write to file
-xlsnam2 = 'mri_fitr3u2.xlsx';          % Unloaded results spreadsheet
+xlsnam2 = 'mri_fitr4u2.xlsx';          % Unloaded results spreadsheet
 xlsnam2 = fullfile(resdir,xlsnam2);    % Include output directory
 %
-hdrs1_1 = {'Subject' 'Visit' 'Result' 'Leg' 'Load' 'Comprt' 'Bone' ...
-           'Layer'};
+hdrs1_1 = {'Subject' 'Visit' 'Result' 'Leg' 'Load' 'Comprt' 'Bone'};
 hdrs1_2 = {'Pixels' 'T1R/T2S' 'RSS' 'ValidPix' 'Mean' 'Min' 'Max' ...
            'SD' 'COV'};
 %
-hdrs2_1 = {'Subject' 'Visit' 'Result' 'Leg' 'Load' 'Comprt' 'Layer'};
+hdrs2_1 = {'Subject' 'Visit' 'Result' 'Leg' 'Load' 'Comprt'};
 %
-psnam = fullfile(resdir,'mri_fitr3u_');     % Start of PS file name
+psnam = fullfile(resdir,'mri_fitr4u_');     % Start of PS file name
 pstyp = '.ps';          % PS file type
 %
 % Get Subject Directories and Visit Subdirectories
@@ -99,23 +100,22 @@ nvisit = size(vdirs,1);
 %   Index 4 - Load - 1 = unloaded and 2 = loaded
 %   Index 5 - Compartment - 1 = lateral and 2 = medial
 %   Index 6 - Bone - 1 = femur and 2 = tibia
-%   Index 7 - Layer - 1 = deep and 2 = superficial
 %
-t1r_res = zeros(nsubj,nvisit,2,2,2,2,2);
-t1r_npx = zeros(nsubj,nvisit,2,2,2,2,2);
-t1r_rss = zeros(nsubj,nvisit,2,2,2,2,2);
+t1r_res = zeros(nsubj,nvisit,2,2,2,2);
+t1r_npx = zeros(nsubj,nvisit,2,2,2,2);
+t1r_rss = zeros(nsubj,nvisit,2,2,2,2);
 %
-t1r_respx = cell(nsubj,nvisit,2,2,2,2,2);
-t1r_rsspx = cell(nsubj,nvisit,2,2,2,2,2);
-t1r_nps = cell(nsubj,nvisit,2,2,2,2,2);
+t1r_respx = cell(nsubj,nvisit,2,2,2,2);
+t1r_rsspx = cell(nsubj,nvisit,2,2,2,2);
+t1r_nps = cell(nsubj,nvisit,2,2,2,2);
 %
-t2s_res = zeros(nsubj,nvisit,2,2,2,2,2);
-t2s_npx = zeros(nsubj,nvisit,2,2,2,2,2);
-t2s_rss = zeros(nsubj,nvisit,2,2,2,2,2);
+t2s_res = zeros(nsubj,nvisit,2,2,2,2);
+t2s_npx = zeros(nsubj,nvisit,2,2,2,2);
+t2s_rss = zeros(nsubj,nvisit,2,2,2,2);
 %
-t2s_respx = cell(nsubj,nvisit,2,2,2,2,2);
-t2s_rsspx = cell(nsubj,nvisit,2,2,2,2,2);
-t2s_nps = cell(nsubj,nvisit,2,2,2,2,2);
+t2s_respx = cell(nsubj,nvisit,2,2,2,2);
+t2s_rsspx = cell(nsubj,nvisit,2,2,2,2);
+t2s_nps = cell(nsubj,nvisit,2,2,2,2);
 %
 % Initialize Unloaded Results Variables
 %
@@ -125,23 +125,22 @@ t2s_nps = cell(nsubj,nvisit,2,2,2,2,2);
 %   Index 3 - Leg - 1 = left and 2 = right
 %   Index 4 - Load - 1 = unloaded and 2 = loaded
 %   Index 5 - Compartment - 1 = lateral and 2 = medial
-%   Index 6 - Layer - 1 = deep and 2 = superficial
 %
-t1ru_res = zeros(nsubj,nvisit,2,2,2,2);
-t1ru_npx = zeros(nsubj,nvisit,2,2,2,2);
-t1ru_rss = zeros(nsubj,nvisit,2,2,2,2);
+t1ru_res = zeros(nsubj,nvisit,2,2,2);
+t1ru_npx = zeros(nsubj,nvisit,2,2,2);
+t1ru_rss = zeros(nsubj,nvisit,2,2,2);
 %
-t1ru_respx = cell(nsubj,nvisit,2,2,2,2);
-t1ru_rsspx = cell(nsubj,nvisit,2,2,2,2);
-t1ru_nps = cell(nsubj,nvisit,2,2,2,2);
+t1ru_respx = cell(nsubj,nvisit,2,2,2);
+t1ru_rsspx = cell(nsubj,nvisit,2,2,2);
+t1ru_nps = cell(nsubj,nvisit,2,2,2);
 %
-t2su_res = zeros(nsubj,nvisit,2,2,2,2);
-t2su_npx = zeros(nsubj,nvisit,2,2,2,2);
-t2su_rss = zeros(nsubj,nvisit,2,2,2,2);
+t2su_res = zeros(nsubj,nvisit,2,2,2);
+t2su_npx = zeros(nsubj,nvisit,2,2,2);
+t2su_rss = zeros(nsubj,nvisit,2,2,2);
 %
-t2su_respx = cell(nsubj,nvisit,2,2,2,2);
-t2su_rsspx = cell(nsubj,nvisit,2,2,2,2);
-t2su_nps = cell(nsubj,nvisit,2,2,2,2);
+t2su_respx = cell(nsubj,nvisit,2,2,2);
+t2su_rsspx = cell(nsubj,nvisit,2,2,2);
+t2su_nps = cell(nsubj,nvisit,2,2,2);
 %
 % Loop through Subjects
 %
@@ -193,7 +192,7 @@ if ido
       nroi = size(roinams,1);
 %
       if nrho~=nroi
-        error([' *** ERROR in mri_fitr3u:  Number of T1rho MAT', ...
+        error([' *** ERROR in mri_fitr4u:  Number of T1rho MAT', ...
                ' files does not match the number of ROI MAT files!']);
       end
       clear nroi;
@@ -262,7 +261,7 @@ if ido
 %
 % Do Loaded Compartmental Analysis
 %
-         [tc1,~,rss1,npx1,id1,tcp1,ampp1,rssp1,nps1] = cmprt_ana(v, ...
+         [tc1,~,rss1,npx1,id1,tcp1,ampp1,rssp1,nps1] = cmprt_ana4(v, ...
                          mask1,rsls1,nrsls1,splt,nslt,fun,init,tr0,opt);
          na1 = size(tc1,1);            % Number of results
 %
@@ -275,24 +274,20 @@ if ido
 %   Index 4 - Load - 1 = unloaded and 2 = loaded
 %   Index 5 - Compartment - 1 = lateral and 2 = medial
 %   Index 6 - Bone - 1 = femur and 2 = tibia
-%   Index 7 - Layer - 1 = deep and 2 = superficial
-%
-% Note:  Layers for masks and compartment analysis variables are:
-%        1 = superficial and 2 = deep.
 %
          for ka = 1:na1
-            t1r_res(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                    id1(ka,3)+1) = tc1(ka);
-            t1r_npx(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                    id1(ka,3)+1) = npx1(ka);
-            t1r_rss(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                    id1(ka,3)+1) = rss1(ka);
-            t1r_respx{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                      id1(ka,3)+1} = tcp1{ka};
-            t1r_rsspx{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                      id1(ka,3)+1} = rssp1{ka};
-            t1r_nps{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                      id1(ka,3)+1} = nps1{ka};
+            t1r_res(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1) = ...
+                    tc1(ka);
+            t1r_npx(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1) = ...
+                    npx1(ka);
+            t1r_rss(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1) = ...
+                    rss1(ka);
+            t1r_respx{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1} = ...
+                      tcp1{ka};
+            t1r_rsspx{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1} = ...
+                      rssp1{ka};
+            t1r_nps{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1} = ...
+                    nps1{ka};
          end
 %
 % Get Statistics on Pixel Results
@@ -338,8 +333,8 @@ if ido
 %
 % Do Unloaded Compartmental Analysis
 %
-         [tc2,~,rss2,npx2,id2,tcp2,ampp2,rssp2,nps2] = cmprt_anau(v, ...
-                         mask2,rsls2,nrsls2,splt,nslt,fun,init,tr0,opt);
+         [tc2,~,rss2,npx2,id2,tcp2,ampp2,rssp2,nps2] = cmprt_ana4u( ...
+                       v,mask2,rsls2,nrsls2,splt,nslt,fun,init,tr0,opt);
          na2 = size(tc2,1);            % Number of results
 %
 % Save Unloaded Results
@@ -350,24 +345,14 @@ if ido
 %   Index 3 - Leg - 1 = left and 2 = right
 %   Index 4 - Load - 1 = unloaded and 2 = loaded
 %   Index 5 - Compartment - 1 = lateral and 2 = medial
-%   Index 6 - Layer - 1 = deep and 2 = superficial
-%
-% Note:  Layers for masks and compartment analysis variables are:
-%        1 = superficial and 2 = deep.
 %
          for ka = 1:na2
-            t1ru_res(ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1) = ...
-                     tc2(ka);
-            t1ru_npx(ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1) = ...
-                     npx2(ka);
-            t1ru_rss(ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1) = ...
-                     rss2(ka);
-            t1ru_respx{ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1} = ...
-                       tcp2{ka};
-            t1ru_rsspx{ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1} = ...
-                       rssp2{ka};
-            t1ru_nps{ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1} = ...
-                     nps2{ka};
+            t1ru_res(ks,kv,ileg+1,ild+1,id2(ka)+1) = tc2(ka);
+            t1ru_npx(ks,kv,ileg+1,ild+1,id2(ka)+1) = npx2(ka);
+            t1ru_rss(ks,kv,ileg+1,ild+1,id2(ka)+1) = rss2(ka);
+            t1ru_respx{ks,kv,ileg+1,ild+1,id2(ka)+1} = tcp2{ka};
+            t1ru_rsspx{ks,kv,ileg+1,ild+1,id2(ka)+1} = rssp2{ka};
+            t1ru_nps{ks,kv,ileg+1,ild+1,id2(ka)+1} = nps2{ka};
          end
 %
 % Get Statistics on Pixel Results
@@ -414,8 +399,8 @@ if ido
 % Plot Results
 %
          sid = ['Subject ' subjnam];
-         cmprt_pltu(v,mask1,rsls1,mask2,rsls2,idt,tcp1,nps1,tcp2, ...
-                    nps2,mxtr,cmap,sid,psnamf);
+         cmprt_plt4u(v,mask1,rsls1,mask2,rsls2,idt,tcp1,nps1,tcp2, ...
+                     nps2,mxtr,cmap,sid,psnamf);
 %
       end               % End of km loop - T1rho MAT file loop
 %
@@ -439,7 +424,7 @@ end                     % End of ido - Skip T1rho?
       nroi = size(roinams,1);
 %
       if nstar~=nroi
-        error([' *** ERROR in mri_fitr3u:  Number of T2* MAT files', ...
+        error([' *** ERROR in mri_fitr4u:  Number of T2* MAT files', ...
                ' does not match the number of ROI MAT files!']);
       end
       clear nroi;
@@ -508,7 +493,7 @@ end                     % End of ido - Skip T1rho?
 %
 % Do Compartmental Analysis
 %
-         [tc1,~,rss1,npx1,id1,tcp1,ampp1,rssp1,nps1] = cmprt_ana(v, ...
+         [tc1,~,rss1,npx1,id1,tcp1,ampp1,rssp1,nps1] = cmprt_ana4(v, ...
                          mask1,rsls1,nrsls1,etns,netn,fun,init,ts0,opt);
          na1 = size(tc1,1);              % Number of results
 %
@@ -521,24 +506,20 @@ end                     % End of ido - Skip T1rho?
 %   Index 4 - Load - 1 = unloaded and 2 = loaded
 %   Index 5 - Compartment - 1 = lateral and 2 = medial
 %   Index 6 - Bone - 1 = femur and 2 = tibia
-%   Index 7 - Layer - 1 = deep and 2 = superficial
-%
-% Note:  Layers for masks and compartment analysis variables are:
-%        1 = superficial and 2 = deep.
 %
          for ka = 1:na1
-            t2s_res(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                    id1(ka,3)+1) = tc1(ka);
-            t2s_npx(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                    id1(ka,3)+1) = npx1(ka);
-            t2s_rss(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                    id1(ka,3)+1) = rss1(ka);
-            t2s_respx{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                      id1(ka,3)+1} = tcp1{ka};
-            t2s_rsspx{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                      id1(ka,3)+1} = rssp1{ka};
-            t2s_nps{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1, ...
-                      id1(ka,3)+1} = nps1{ka};
+            t2s_res(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1) = ...
+                    tc1(ka);
+            t2s_npx(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1) = ...
+                    npx1(ka);
+            t2s_rss(ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1) = ...
+                    rss1(ka);
+            t2s_respx{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1} = ...
+                      tcp1{ka};
+            t2s_rsspx{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1} = ...
+                      rssp1{ka};
+            t2s_nps{ks,kv,ileg+1,ild+1,id1(ka,1)+1,id1(ka,2)+1} = ...
+                    nps1{ka};
          end
 %
 % Get Statistics on Pixel Results
@@ -579,8 +560,8 @@ end                     % End of ido - Skip T1rho?
 %
 % Do Unloaded Compartmental Analysis
 %
-         [tc2,~,rss2,npx2,id2,tcp2,ampp2,rssp2,nps2] = cmprt_anau(v, ...
-                         mask2,rsls2,nrsls2,etns,netn,fun,init,tr0,opt);
+         [tc2,~,rss2,npx2,id2,tcp2,ampp2,rssp2,nps2] = cmprt_ana4u( ...
+                       v,mask2,rsls2,nrsls2,etns,netn,fun,init,tr0,opt);
          na2 = size(tc2,1);            % Number of results
 %
 % Save Unloaded Results
@@ -591,24 +572,14 @@ end                     % End of ido - Skip T1rho?
 %   Index 3 - Leg - 1 = left and 2 = right
 %   Index 4 - Load - 1 = unloaded and 2 = loaded
 %   Index 5 - Compartment - 1 = lateral and 2 = medial
-%   Index 6 - Layer - 1 = deep and 2 = superficial
-%
-% Note:  Layers for masks and compartment analysis variables are:
-%        1 = superficial and 2 = deep.
 %
          for ka = 1:na2
-            t2su_res(ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1) = ...
-                     tc2(ka);
-            t2su_npx(ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1) = ...
-                     npx2(ka);
-            t2su_rss(ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1) = ...
-                     rss2(ka);
-            t2su_respx{ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1} = ...
-                       tcp2{ka};
-            t2su_rsspx{ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1} = ...
-                       rssp2{ka};
-            t2su_nps{ks,kv,ileg+1,ild+1,id2(ka,1)+1,id2(ka,2)+1} = ...
-                     nps2{ka};
+            t2su_res(ks,kv,ileg+1,ild+1,id2(ka)+1) = tc2(ka);
+            t2su_npx(ks,kv,ileg+1,ild+1,id2(ka)+1) = npx2(ka);
+            t2su_rss(ks,kv,ileg+1,ild+1,id2(ka)+1) = rss2(ka);
+            t2su_respx{ks,kv,ileg+1,ild+1,id2(ka)+1} = tcp2{ka};
+            t2su_rsspx{ks,kv,ileg+1,ild+1,id2(ka)+1} = rssp2{ka};
+            t2su_nps{ks,kv,ileg+1,ild+1,id2(ka)+1} = nps2{ka};
          end
 %
 % Get Statistics on Pixel Results
@@ -655,8 +626,8 @@ end                     % End of ido - Skip T1rho?
 % Plot Results
 %
          sid = ['Subject ' subjnam];
-         cmprt_pltu(v,mask1,rsls1,mask2,rsls2,idt,tcp1,nps1,tcp2, ...
-                    nps2,mxtr,cmap,sid,psnamf);
+         cmprt_plt4u(v,mask1,rsls1,mask2,rsls2,idt,tcp1,nps1,tcp2, ...
+                     nps2,mxtr,cmap,sid,psnamf);
 %
       end               % End of km loop - T2* MAT file loop
 %
@@ -668,7 +639,7 @@ end                     % End of ks loop - subjects loop
 %
 % Save to MAT File
 %
-save(fullfile(resdir,'mri_fitr3u.mat'),'t1r_res','t1r_npx', ...
+save(fullfile(resdir,'mri_fitr4u.mat'),'t1r_res','t1r_npx', ...
      't1r_rss','t1r_respx','t1r_rsspx','t1r_nps','t2s_res', ...
      't2s_npx','t2s_rss','t2s_respx','t2s_rsspx','t2s_nps', ...
      't1ru_res','t1ru_npx','t1ru_rss','t1ru_respx','t1ru_rsspx', ...

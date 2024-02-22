@@ -50,7 +50,7 @@ function [xyzp,xyz1i,xyz2i] = cyl_pwl(xyz1,xyz2,rad,ztrap,npts,ptol)
 % Check for Inputs
 %
 if nargin<3
-  error(' *** ERROR in CYL_PWL:  Three input are required!');
+  error(' *** ERROR in CYL_PWL:  Three inputs are required!');
 end
 %
 if nargin<4

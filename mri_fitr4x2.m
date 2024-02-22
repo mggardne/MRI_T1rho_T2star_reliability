@@ -1,15 +1,18 @@
 %#######################################################################
 %
-%                 * MRI FIT Reliability 3 x2 Program *
+%                 * MRI FIT Reliability 4 x2 Program *
 %
 %          M-File which reads the registered MRI data and segmentation 
 %     MAT files and fits a monoexponential to the MRI data as a function
 %     of spin lock or echo times where T1rho or T2* are the time
 %     constants of the fits.  Resulting T1rho and T2* values and summary
 %     statistics are written to the MS-Excel spreadsheet,
-%     mri_fitr3x2.xlsx, in the "Results\NACOB_Final2" directory.
+%     mri_fitr4x2.xlsx, in the "Results\NACOB_Final3" directory.
 %
-%          ROI radius is twice (x2) the radius of mri_fitr3.m.
+%          This analysis combines the deep and superficial cartilage
+%     layers. 
+%
+%          ROI radius is twice (x2) the radius of mri_fitr4.m.
 %
 %     NOTES:  1.  Data MAT files must be in subject directories starting
 %             with "MRIR" and visit subdirectories "Visit1" or "Visit2".
@@ -19,10 +22,10 @@
 %             names must contain "roisx2".  See rd_dicom.m and
 %             seg_rois_cmpx2.m.
 %
-%             3.  M-file exp_fun1.m, cmprt_ana.m and cmprt_plt.m must
+%             3.  M-file exp_fun1.m, cmprt_ana4.m and cmprt_plt4.m must
 %             be in the current directory or path.
 %
-%     04-Aug-2022 * Mack Gardner-Morse
+%     24-May-2023 * Mack Gardner-Morse
 %
 
 %#######################################################################
@@ -59,17 +62,16 @@ mxts = 75;              % Maximum scale on T2* plots
 %
 % Output Directory, Output Files and Output Labels
 %
-resdir = fullfile('Results','NACOB_Final2');     % Results directory
+resdir = fullfile('Results','NACOB_Final3');     % Results directory
 %
 ifirst = true;          % First write to file
-xlsnam = 'mri_fitr3x2.xlsx';           % Results spreadsheet
+xlsnam = 'mri_fitr4x2.xlsx';           % Results spreadsheet
 xlsnam = fullfile(resdir,xlsnam);      % Include output directory
-hdrs1 = {'Subject' 'Visit' 'Result' 'Leg' 'Load' 'Comprt' 'Bone' ...
-         'Layer'};
+hdrs1 = {'Subject' 'Visit' 'Result' 'Leg' 'Load' 'Comprt' 'Bone'};
 hdrs2 = {'Pixels' 'T1R/T2S' 'RSS' 'ValidPix' 'Mean' 'Min' 'Max' ...
          'SD' 'COV'};
 %
-psnam = fullfile(resdir,'mri_fitr3x2_');    % Start of PS file name
+psnam = fullfile(resdir,'mri_fitr4x2_');    % Start of PS file name
 pstyp = '.ps';          % PS file type
 %
 % Get Subject Directories and Visit Subdirectories
@@ -81,9 +83,6 @@ nsubj = size(sdirs,1);
 vdirs = {'Visit1'; 'Visit2'};          % Visit directories
 nvisit = size(vdirs,1);
 %
-o3 = ones(1,3);         % Column index for variable "id"
-o5 = ones(1,5);         % Column index for variable "ids"
-%
 % Initialize Results Variables
 %
 % Indices key:
@@ -93,23 +92,22 @@ o5 = ones(1,5);         % Column index for variable "ids"
 %   Index 4 - Load - 1 = unloaded and 2 = loaded
 %   Index 5 - Compartment - 1 = lateral and 2 = medial
 %   Index 6 - Bone - 1 = femur and 2 = tibia
-%   Index 7 - Layer - 1 = deep and 2 = superficial
 %
-t1r_res = zeros(nsubj,nvisit,2,2,2,2,2);
-t1r_npx = zeros(nsubj,nvisit,2,2,2,2,2);
-t1r_rss = zeros(nsubj,nvisit,2,2,2,2,2);
+t1r_res = zeros(nsubj,nvisit,2,2,2,2);
+t1r_npx = zeros(nsubj,nvisit,2,2,2,2);
+t1r_rss = zeros(nsubj,nvisit,2,2,2,2);
 %
-t1r_respx = cell(nsubj,nvisit,2,2,2,2,2);
-t1r_rsspx = cell(nsubj,nvisit,2,2,2,2,2);
-t1r_nps = cell(nsubj,nvisit,2,2,2,2,2);
+t1r_respx = cell(nsubj,nvisit,2,2,2,2);
+t1r_rsspx = cell(nsubj,nvisit,2,2,2,2);
+t1r_nps = cell(nsubj,nvisit,2,2,2,2);
 %
-t2s_res = zeros(nsubj,nvisit,2,2,2,2,2);
-t2s_npx = zeros(nsubj,nvisit,2,2,2,2,2);
-t2s_rss = zeros(nsubj,nvisit,2,2,2,2,2);
+t2s_res = zeros(nsubj,nvisit,2,2,2,2);
+t2s_npx = zeros(nsubj,nvisit,2,2,2,2);
+t2s_rss = zeros(nsubj,nvisit,2,2,2,2);
 %
-t2s_respx = cell(nsubj,nvisit,2,2,2,2,2);
-t2s_rsspx = cell(nsubj,nvisit,2,2,2,2,2);
-t2s_nps = cell(nsubj,nvisit,2,2,2,2,2);
+t2s_respx = cell(nsubj,nvisit,2,2,2,2);
+t2s_rsspx = cell(nsubj,nvisit,2,2,2,2);
+t2s_nps = cell(nsubj,nvisit,2,2,2,2);
 %
 % Loop through Subjects
 %
@@ -161,7 +159,7 @@ if ido
       nroi = size(roinams,1);
 %
       if nrho~=nroi
-        error([' *** ERROR in mri_fitr3:  Number of T1rho MAT', ...
+        error([' *** ERROR in mri_fitr4x2:  Number of T1rho MAT', ...
                ' files does not match the number of ROI MAT files!']);
       end
       clear nroi;
@@ -225,7 +223,7 @@ if ido
 %
 % Do Compartmental Analysis
 %
-         [tc,~,rss,npx,id,tcp,ampp,rssp,nps] = cmprt_ana(v,mask, ...
+         [tc,~,rss,npx,id,tcp,ampp,rssp,nps] = cmprt_ana4(v,mask, ...
                                  rsls,nrsls,splt,nslt,fun,init,tr0,opt);
          na = size(tc,1);              % Number of results
 %
@@ -238,30 +236,26 @@ if ido
 %   Index 4 - Load - 1 = unloaded and 2 = loaded
 %   Index 5 - Compartment - 1 = lateral and 2 = medial
 %   Index 6 - Bone - 1 = femur and 2 = tibia
-%   Index 7 - Layer - 1 = deep and 2 = superficial
-%
-% Note:  Layers for masks and compartment analysis variables are:
-%        1 = superficial and 2 = deep.
 %
          for ka = 1:na
-            t1r_res(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                    id(ka,3)+1) = tc(ka);
-            t1r_npx(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                    id(ka,3)+1) = npx(ka);
-            t1r_rss(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                    id(ka,3)+1) = rss(ka);
-            t1r_respx{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                      id(ka,3)+1} = tcp{ka};
-            t1r_rsspx{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                      id(ka,3)+1} = rssp{ka};
-            t1r_nps{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                      id(ka,3)+1} = nps{ka};
+            t1r_res(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1) = ...
+                    tc(ka);
+            t1r_npx(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1) = ...
+                    npx(ka);
+            t1r_rss(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1) = ...
+                    rss(ka);
+            t1r_respx{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1} = ...
+                      tcp{ka};
+            t1r_rsspx{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1} = ...
+                      rssp{ka};
+            t1r_nps{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1} = ...
+                    nps{ka};
          end
 %
 % Plot Results
 %
          sid = ['Subject ' subjnam];
-         cmprt_plt(v,mask,rsls,nrsls,idt,tcp,nps,mxtr,cmap,sid,psnamf);
+         cmprt_plt4(v,mask,rsls,nrsls,idt,tcp,nps,mxtr,cmap,sid,psnamf);
 %
 % Get Statistics on Pixel Results
 %
@@ -287,11 +281,11 @@ if ido
 %
          ids = [subj vid ires ileg ild];         % MAT file identifiers
          ids = repmat(ids,na,1);
-         ids = [ids id];               % All identifiers
+         idw = [ids id];               % All identifiers
 %
 % Create and Write Table of Results
 %
-         t1 = array2table(ids,'VariableNames',hdrs1);
+         t1 = array2table(idw,'VariableNames',hdrs1);
          t2 = table(npx,tc,rss,npxv,tcpm,tcpmn,tcpmx,tcpsd,tcpcov, ...
                     'VariableNames',hdrs2);
          t = [t1 t2];
@@ -326,7 +320,7 @@ end                     % End of ido - Skip T1rho?
       nroi = size(roinams,1);
 %
       if nstar~=nroi
-        error([' *** ERROR in mri_fitr3:  Number of T2* MAT files', ...
+        error([' *** ERROR in mri_fitr4x2:  Number of T2* MAT files', ...
                ' does not match the number of ROI MAT files!']);
       end
       clear nroi;
@@ -387,31 +381,31 @@ end                     % End of ido - Skip T1rho?
 %
 % Do Compartmental Analysis
 %
-         [tc,~,rss,npx,id,tcp,ampp,rssp,nps] = cmprt_ana(v,mask, ...
+         [tc,~,rss,npx,id,tcp,ampp,rssp,nps] = cmprt_ana4(v,mask, ...
                                  rsls,nrsls,etns,netn,fun,init,ts0,opt);
          na = size(tc,1);              % Number of results
 %
 % Save Results
 %
          for ka = 1:na
-            t2s_res(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                    id(ka,3)+1) = tc(ka);
-            t2s_npx(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                    id(ka,3)+1) = npx(ka);
-            t2s_rss(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                    id(ka,3)+1) = rss(ka);
-            t2s_respx{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                      id(ka,3)+1} = tcp{ka};
-            t2s_rsspx{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                      id(ka,3)+1} = rssp{ka};
-            t2s_nps{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1, ...
-                      id(ka,3)+1} = nps{ka};
+            t2s_res(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1) = ...
+                    tc(ka);
+            t2s_npx(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1) = ...
+                    npx(ka);
+            t2s_rss(ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1) = ...
+                    rss(ka);
+            t2s_respx{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1} = ...
+                      tcp{ka};
+            t2s_rsspx{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1} = ...
+                      rssp{ka};
+            t2s_nps{ks,kv,ileg+1,ild+1,id(ka,1)+1,id(ka,2)+1} = ...
+                    nps{ka};
          end
 %
 % Plot Results
 %
          sid = ['Subject ' subjnam];
-         cmprt_plt(v,mask,rsls,nrsls,idt,tcp,nps,mxts,cmap,sid,psnamf);
+         cmprt_plt4(v,mask,rsls,nrsls,idt,tcp,nps,mxts,cmap,sid,psnamf);
 %
 % Get Statistics on Pixel Results
 %
@@ -437,11 +431,11 @@ end                     % End of ido - Skip T1rho?
 %
          ids = [subj vid ires ileg ild];         % MAT file identifiers
          ids = repmat(ids,na,1);
-         ids = [ids id];               % All identifiers
+         idw = [ids id];               % All identifiers
 %
 % Create and Write Table of Results
 %
-         t1 = array2table(ids,'VariableNames',hdrs1);
+         t1 = array2table(idw,'VariableNames',hdrs1);
          t2 = table(npx,tc,rss,npxv,tcpm,tcpmn,tcpmx,tcpsd,tcpcov, ...
                     'VariableNames',hdrs2);
          t = [t1 t2];
@@ -459,7 +453,7 @@ end                     % End of ks loop - subjects loop
 %
 % Save to MAT File
 %
-save(fullfile(resdir,'mri_fitr3x2.mat'),'t1r_res','t1r_npx','t1r_rss', ...
+save(fullfile(resdir,'mri_fitr4x2.mat'),'t1r_res','t1r_npx','t1r_rss', ...
      't1r_respx','t1r_rsspx','t1r_nps','t2s_res','t2s_npx', ...
      't2s_rss','t2s_respx','t2s_rsspx','t2s_nps');
 %

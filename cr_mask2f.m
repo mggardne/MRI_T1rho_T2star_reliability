@@ -40,19 +40,19 @@ function [mask1,mask2] = cr_mask2f(roic,npx,dist,scal,tol,iplt)
 % Check for Inputs
 %
 if (nargin<2)
-  error(' *** ERROR in CR_MASK2:  Two inputs are required!');
+  error(' *** ERROR in CR_MASK2F:  Two inputs are required!');
 end
 %
 roic = roic(:);
 [nr,nc] = size(roic);
 if nr~=2&&nc~=1
-  error([' *** ERROR in CR_MASK2:  Input cell array must have'
+  error([' *** ERROR in CR_MASK2F:  Input cell array must have'
          ' two elements!']);
 end
 %
 ndim = size(npx(:),1);
 if ndim>2||ndim<1
-  error([' *** ERROR in CR_MASK2:  Incorrect number of image ', ...
+  error([' *** ERROR in CR_MASK2F:  Incorrect number of image ', ...
          'dimensions!']);
 end
 %

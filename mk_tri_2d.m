@@ -1,24 +1,16 @@
-function [tri1,tri2,xy,xym] = mk2_tri_2d(dat,dist,scal,tol,iplt)
-%MK2_TRI_2D Makes two triangular meshes by using boundary line data from
-%           a two-dimensional digitized MRI slice.  The first line is
-%           assumed to be cartilage and the second line is assumed to
-%           be bone.  The region is divided into two regions using a
-%           midline between the two lines.
+function [tri,xy,nt] = mk_tri_2d(dat,tol,iplt)
+%MK_TRI_2D Makes a triangular mesh using boundary line data from
+%        a two-dimensional digitized MRI slice.  The first line is
+%        assumed to be cartilage and the second line is assumed to be
+%        bone.
 %
-%        [TRI1,TRI2,XY] = MK2_TRI_2D(DAT) given a cell array
-%        containing two (2) columns matrices with boundary line
-%        coordinate point data, DAT, returns two three (3) column
-%        triangle connectivity matrices, TRI1 and TRI2 and X and Y
-%        coordinates in two columns matrix XY.
+%        [TRI,XY] = MK_TRI_2D(DAT) given a cell array containing two (2)
+%        columns matrices with boundary line coordinate point data,
+%        DAT, returns a three (3) column triangle connectivity matrix,
+%        TRI and X and Y coordinates in a two columns matrix XY.
 %
-%        [TRI1,TRI2,XY] = MK2_TRI_2D(DAT,DIST) midline points must
-%        be within a distance DIST of the second line.  The default
-%        value is Inf.  See midline.m.
-%
-%        [TRI1,TRI2,XY] = MK2_TRI_2D(DAT,DIST,SCAL) a one or two
-%        element scale SCAL is used to scale the X and Y coordinates
-%        before comparison with the distance DIST for midline points.
-%        See midline.m.
+%        [TRI,XY,NT] = MK_TRI_2D(DAT) returns the number of triangles,
+%        NT.
 %
 %        NOTES:  1.  Each boundary coordinate data matrix must
 %                correspond to one index into the cell array DAT.
@@ -29,17 +21,16 @@ function [tri1,tri2,xy,xym] = mk2_tri_2d(dat,dist,scal,tol,iplt)
 %                ordering direction and the ordering direction is
 %                reversed if the dot product is negative.
 %
-%                3.  The first triangulation is between the first line
-%                and the midline.  The second triangulation is between
-%                the midline and the second line.
+%                3.  The second boundary line may be truncated if it
+%                extends pass the first boundary line.
 %
-%                4.   M-files midline.m, lsect2.m and lsect2a.m must be
-%                in the current directory or path.
+%                4.  M-files lsect2.m and lsect2a.m must be in the
+%                current directory or path.
 %
-%                5.  Similar to mk2_tri_2df.m except the slopes of the
+%                5.  Similar to mk_tri_2df.m except the slopes of the
 %                end points are in the opposite directions.
 %
-%        20-Aug-2020 * Mack Gardner-Morse
+%        04-Nov-2022 * Mack Gardner-Morse
 %
 
 %#######################################################################
@@ -47,39 +38,17 @@ function [tri1,tri2,xy,xym] = mk2_tri_2d(dat,dist,scal,tol,iplt)
 % Check for Inputs
 %
 if (nargin<1)
-  error(' *** ERROR in mk2_tri_2d:  No input data!');
+  error(' *** ERROR in mk_tri_2d:  No input data!');
 end
 %
 if nargin<2
-  dist = Inf;            % No distance checking
-end
-%
-if isempty(dist)
-  dist = Inf;
-end
-%
-if nargin<3
-  scal = [1 1];         % No scaling
-end
-if isempty(scal)
-  scal = [1 1];
-end
-scal = scal(:);
-nr = size(scal,1);
-if nr==1
-  scal = [scal scal];   % Same scaling for X and Y
-else
-  scal = scal(1:2)';
-end
-%
-if nargin<4
   tol = 0.1;
 end
 if isempty(tol)
   tol = 0.1;
 end
 %
-if nargin<5
+if nargin<3
   iplt = false;
 end
 %
@@ -87,8 +56,8 @@ dat = dat(:);
 nslice = size(dat,1);
 %
 if nslice~=2
-  error([' *** ERROR in mk2_tri_2d:  Input cell array must ', ...
-         'have two elements containing 2D coordinates for two lines!']);
+  error([' *** ERROR in mk_tri_2d:  Input cell array must have ', ...
+         'two elements containing 2D coordinates for two lines!']);
 end
 %
 % Get First (Cartilage) Line and Slopes at the Ends of the Line
@@ -100,13 +69,13 @@ vec1 = xy1(npts1,:)-xy1(1,:);          % Direction of line
 vec1 = vec1./norm(vec1);
 %
 dd = diff(xy1);
-de = dd([1,npts1-1],:);         % Slopes at ends of top line
+de = dd([1,npts1-1],:);                % Slopes at ends of top line
 %
 % Ends of First (Cartilage) Line
 %
 mp = -de(:,1)./de(:,2); % 90 degrees
 ids = abs(de(:,2))<1e-8;
-mp(ids) = 1e+4;         % Large but not infinite slope
+mp(ids) = sign(mp(ids))*1e+4;          % Large but not infinite slope
 % mp(2,1) = (de(2,1)+de(2,2))./(de(2,1)-de(2,2));  % 45 degrees
 % mp(1,1) = (de(1,2)-de(1,1))./(de(1,1)+de(1,2));  % 45 degrees
 % ratio = tan(pi/3);      % Opposite to adjacent for 60 degrees (pi/3 radians)
@@ -134,7 +103,7 @@ if dotp<tol
   vec = vec./norm(vec);
   dotp2 = vec1*vec';
   if dotp2<dotp         % Revert back to original ordering
-    warning([' *** WARNING in mk2_tri_2d:  Ordering of points', ...
+    warning([' *** WARNING in mk_tri_2d:  Ordering of points', ...
              ' in the slices may not be in the same direction!']);
     xy2 = flipud(xy2);
   end
@@ -164,30 +133,19 @@ idc = id1:id2+1;
 nptc = length(idc);
 xy2 = xy2(idc,:);
 %
-% Get Midline
-%
-xym = midline(xy1,xy2,dist,scal,iplt);
-nptsm = size(xym,1);
-%
-xy = [xy1; xym; xy2];
+xy = [xy1; xy2];
 %
 % Delaunay Triangulation
 %
-n = [0; cumsum([npts1; nptsm; nptc])];
+n = [0; cumsum([npts1; nptc])];
 %
 c1 = [(n(1)+1:n(2)-1)' (n(1)+2:n(2))'; n(2) n(3); (n(3):-1:n(2)+2)' ...
       (n(3)-1:-1:n(2)+1)'; n(2)+1 n(1)+1];       % Constraints
 %
 dt1 = delaunayTriangulation(xy,c1);
 idin = isInterior(dt1);
-tri1 = dt1(idin,:);
-%
-c2 = [(n(2)+1:n(3)-1)' (n(2)+2:n(3))'; n(3) n(4); (n(4):-1:n(3)+2)' ...
-      (n(4)-1:-1:n(3)+1)'; n(3)+1 n(2)+1];       % Constraints
-%
-dt2 = delaunayTriangulation(xy,c2);
-idin = isInterior(dt2);
-tri2 = dt2(idin,:);
+tri = dt1(idin,:);
+nt = size(tri,1);
 %
 % Plot Triangulations?
 %
@@ -196,8 +154,6 @@ if iplt
   h1 = figure;
   orient tall;
 %
-  nt1 = size(tri1,1);
-  nt2 = size(tri2,1);
   xt = xy(:,1);
   yt = xy(:,2);
 %
@@ -206,38 +162,25 @@ if iplt
   npts = size(xt,1);
   text(xt,yt,int2str((1:npts)'),'Color','k','FontSize',10);
 %
-  trimesh(tri1,xt,yt);
-  text(mean(xt(tri1),2),mean(yt(tri1),2),int2str((1:nt1)'), ...
+  trimesh(tri,xt,yt);
+  text(mean(xt(tri),2),mean(yt(tri),2),int2str((1:nt)'), ...
        'Color','r','FontSize',10);
-%
-  trimesh(tri2,xt,yt);
-  text(mean(xt(tri2),2),mean(yt(tri2),2),int2str((1:nt2)'), ...
-       'Color','b','FontSize',10);
 %
   h2 = figure;
   orient tall;
   plot(xy2(:,1),xy2(:,2),'k.-','LineWidth',1,'MarkerSize',7);
   hold on;
   plot(xy1(:,1),xy1(:,2),'b.-','LineWidth',1,'MarkerSize',7);
-  plot(xym(:,1),xym(:,2),'r.:','LineWidth',1,'MarkerSize',7);
   text(xt,yt,int2str((1:npts)'),'Color','k', ...
        'FontSize',10);
 %
-  xp = reshape(xy(tri1,1),nt1,3)';
-  yp = reshape(xy(tri1,2),nt1,3)';
+  xp = reshape(xy(tri,1),nt,3)';
+  yp = reshape(xy(tri,2),nt,3)';
   xp = repmat(mean(xp),3,1)+0.75*(xp-repmat(mean(xp),3,1));
   yp = repmat(mean(yp),3,1)+0.75*(yp-repmat(mean(yp),3,1));
   patch(xp,yp,[1 0.7 0.7]);
-  text(mean(xt(tri1),2),mean(yt(tri1),2),int2str((1:nt1)'), ...
+  text(mean(xt(tri),2),mean(yt(tri),2),int2str((1:nt)'), ...
        'Color','r','FontSize',10);
-%
-  xp = reshape(xy(tri2,1),nt2,3)';
-  yp = reshape(xy(tri2,2),nt2,3)';
-  xp = repmat(mean(xp),3,1)+0.75*(xp-repmat(mean(xp),3,1));
-  yp = repmat(mean(yp),3,1)+0.75*(yp-repmat(mean(yp),3,1));
-  patch(xp,yp,[0.3 0.7 1]);
-  text(mean(xt(tri2),2),mean(yt(tri2),2),int2str((1:nt2)'), ...
-       'Color','b','FontSize',10);
 %
   axis equal;
   pause;

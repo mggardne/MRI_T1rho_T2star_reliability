@@ -45,7 +45,7 @@ legds = ['FEM_CART'; 'FEM_BONE'; 'TIB_CART'; 'TIB_BONE'];
 % Parameter for Dividing Cartilage in Half and Radius of Analysis Region
 %
 dist = 7.5;             % Maximum distance to midline in pixels
-rrad = 12.0;             % Radius of analysis region (width of 6 or 8 slices)
+rrad = 12.0;            % Radius of analysis region (width of 6 or 8 slices)
 rrad2 = rrad*rrad;
 itroch = true;          % Read trochlea?
 % itroch = false;         % Read trochlea?

@@ -38,8 +38,8 @@ function bones = rd_rois(rdir,leg,ld,itroch,irho)
 %
 %                  4.  Trochlear ROIs are removed by default.
 %
-%                  5.  CSV files with case insensitive "dup" in the
-%                  file names are ignored as duplicate files.
+%                  5.  CSV files with case insensitive "dup" or "MGG"
+%                  in the file names are ignored as duplicate files.
 %
 %                  6.  Cartilage (SAGAR) CSV files with "_RO" in the
 %                  file names are used in place of the same files

@@ -220,7 +220,7 @@ for kr = 1:2
       tc(idx) = rp(2);                 % Time constant - T1rho/T2* 
       amp(idx) = rp(1);                % Amplitude of exponential
       rss(idx) = err;                  % Residual sum of squares
-      id(idx,:) = [ikr ikb];           % Compartment, bone and layer IDs
+      id(idx,:) = [ikr ikb];           % Compartment and bone IDs
 %
 % Calculate T1rho/T2* for Each Pixel in Each Layer
 %

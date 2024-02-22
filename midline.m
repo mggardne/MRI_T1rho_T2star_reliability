@@ -26,7 +26,8 @@ function xymid = midline(xyc,xyb,tol,pspc,iplt)
 %          XYB.  The first element of PSPC is used to scale X
 %          and the second element is used to scale the Y coordinates.
 %          Note:  If PSPC has only one element, the scaling in assumed
-%          to be the same in X and Y.
+%          to be the same in X and Y.  The scale is usually the pixel
+%          size.
 %
 %          NOTES:  1.  The two lines must be going in the same
 %                  direction so that the two ends line up.

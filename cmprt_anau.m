@@ -48,12 +48,11 @@ function [tc,amp,rss,npx,id,tcpx,amppx,rsspx,nps] = cmprt_anau(v, ...
 %
 %          [TC,AMP,RSS,NPX,ID,TCPX,AMPPX,RSSPX,NPS] = CMPRT_ANAU(...)
 %          returns the T1rho/T2* for each pixel in the two compartments
-%          (lateral and medial), two bones (femur and tibia) and two
-%          layers (superficial and deep) in a cell array, TCPX, the
-%          exponential amplitudes for each pixel in a cell array, AMPPX,
-%          the sum of squared residuals for each pixel, RSSPX, and the
-%          number of pixels in each slice within the regions in a cell
-%          array, NPS.
+%          (lateral and medial) and two layers (superficial and deep)
+%          in a cell array, TCPX, the exponential amplitudes for each
+%          pixel in a cell array, AMPPX, the sum of squared residuals
+%          for each pixel, RSSPX, and the number of pixels in each
+%          slice within the regions in a cell array, NPS.
 %
 %          NOTES:  1.  The T1rho/T2* map is calculated as a mono-
 %                  exponential as a function of spin lock/echo times.
