@@ -30,13 +30,8 @@ if ~iscell(dat)
   error(' *** ERROR in CHK_GAP:  Input data must be a cell array!');
 end
 %
-dat = dat(:);
-ncell = size(dat,1);
+% Check for Gaps in Point Coordinates
 %
-for k = 1:ncell
-   xyz = dat{k};
-   xyz = fix_gap(xyz);
-   dat{k} = xyz;
-end
+dat = cellfun(@fix_gap,dat(:),'UniformOutput',false);
 %
 return
