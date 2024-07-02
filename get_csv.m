@@ -47,6 +47,10 @@ csvfile = dir(fullfile(csvdir,csvfile));
 csvfile = {csvfile.name}';
 idx = ~contains(csvfile,'dup','IgnoreCase',true);     % Skip duplicate files
 csvfile = csvfile(idx);
+idx = ~contains(csvfile,'MGG','IgnoreCase',true);     % Skip MGG files
+csvfile = csvfile(idx);
+idx = ~contains(csvfile,'org','IgnoreCase',true);     % Skip original files
+csvfile = csvfile(idx);
 %
 % Check for Files with the Removal of the Overlap (RO Files)
 %

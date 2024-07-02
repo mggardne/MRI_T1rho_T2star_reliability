@@ -1,5 +1,5 @@
-function bones = rd_rois2(rdir,leg,ld,itroch,irho)
-%RD_ROIS2  Reads a particular loaded or unloaded leg sagittal
+function bones = rd_rois7(rdir,leg,ld,itroch,irho)
+%RD_ROIS7  Reads a particular loaded or unloaded leg sagittal
 %          segmentation for the femur and tibia in pixels from CSV
 %          files in a directory.
 %
@@ -10,17 +10,17 @@ function bones = rd_rois2(rdir,leg,ld,itroch,irho)
 %          the bone.  BONES.rois.roi(1) is the lateral compartment and
 %          BONES.rois.roi(2) is the medial compartment.
 %
-%          BONES = RD_ROIS2(RDIR,LEG,LD) given the directory name in the
+%          BONES = RD_ROIS7(RDIR,LEG,LD) given the directory name in the
 %          string, RDIR, either the character 'L' or 'R' for the left
 %          or right leg in LEG, and either 'LD' or 'UL' for loaded or
 %          unloaded condition in LD, return structure BONES with the
 %          femur and tibia segmented regions of interest (ROIs).
 %
-%          BONES = RD_ROIS2(RDIR,LEG,LD,ITROCH) given the
+%          BONES = RD_ROIS7(RDIR,LEG,LD,ITROCH) given the
 %          logical ITROCH, trochlear ROIs are returned in the femur
 %          structure BONES(1).
 %
-%          BONES = RD_ROIS2(RDIR,LEG,LD,ITROCH,IRHO) given the
+%          BONES = RD_ROIS7(RDIR,LEG,LD,ITROCH,IRHO) given the
 %          integer IRHO, checks for 'imageno' greater than 96 and
 %          subtracts one (1) from 'imageno', divides by IRHO, and adds
 %          one (1).  This is to account for the digitization on the
@@ -42,7 +42,7 @@ function bones = rd_rois2(rdir,leg,ld,itroch,irho)
 %                  file names are ignored as duplicate files.
 %
 %                  6.  Cartilage (SAGAR) CSV files with "_RO" in the
-%                  file names are not used in place of the same files
+%                  file names are NOT used in place of the same files
 %                  without "_RO".
 %
 %                  7.  Trochlea option is NOT tested.
@@ -55,7 +55,7 @@ function bones = rd_rois2(rdir,leg,ld,itroch,irho)
 % Check for Inputs
 %
 if (nargin<3)
-  error(' *** ERROR in RD_ROIS2:  Three inputs are required!');
+  error(' *** ERROR in RD_ROIS7:  Three inputs are required!');
 end
 %
 if (nargin<4)
@@ -80,18 +80,16 @@ for l = 1:nb
    rnams = {rnams.name}';
    idx = ~contains(rnams,'MGG','IgnoreCase',true);
    rnams = rnams(idx);
+   idx = ~contains(rnams,'_org','IgnoreCase',true);
+   rnams = rnams(idx);
    idx = ~contains(rnams,'dup','IgnoreCase',true);
    rnams = sort(rnams(idx));           % Cartilage first, bone last
-   idx = contains(rnams,'_RO');        % Check for _RO files
-   if any(idx)
-     idc = contains(rnams,'SAGAR');
-     idx = idx|~idc;
-     rnams = rnams(~idx);
-   end
+   idx = ~contains(rnams,'_RO');       % Check for _RO files
+   rnams = rnams(idx);
    nrfiles = size(rnams,1);
    if nrfiles>2
      fprintf(1,'  %s\n',rnams{:});
-     error(' *** ERROR in RD_ROIS2:  Too many CSV files found!');
+     error(' *** ERROR in RD_ROIS7:  Too many CSV files found!');
    end
 %
 % Loop through ROI Files

@@ -40,7 +40,9 @@ function [xyzp,xyz1i,xyz2i] = cyl_pwl(xyz1,xyz2,rad,ztrap,npts,ptol)
 %                  must be in the current directory or path.
 %
 %                  2.  At least one line must have two intersections
-%                  with the cylinder to form a polygon.
+%                  with the cylinder and the other line must have at
+%                  least one intersection with the cylinder to form a
+%                  polygon.
 %
 %          30-Sep-2022 * Mack Gardner-Morse 
 %
@@ -275,10 +277,10 @@ if n1==2&&n2==2
   pts = cyl_pl3(rad,pxyz,nv,[xyzi1([1; end],:); xyzi2([1; end],:)], ...
                 ends,npts);
   xyzp = [xyzi1; pts{1}; xyzi2; pts{2}];
-elseif n1==2&&n2<2
+elseif n1==2&&n2==1
   pts = cyl_pl3(rad,pxyz,nv,[xyz1i; mean(xyz2)],ends,npts);
   xyzp = [xyzi1; flipud(pts)];
-elseif n1<2&&n2==2
+elseif n1==1&&n2==2
   pts = cyl_pl3(rad,pxyz,nv,[xyz2i; mean(xyz1)],ends,npts);
   xyzp = [xyzi2; flipud(pts)];
 end
