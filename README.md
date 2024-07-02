@@ -12,3 +12,5 @@ An additional region of interest on the posterior femoral condyles (not in conta
 M-files for the analysis of the entire cartilage regions (lateral and medial femur, and lateral and medial tibia) were added.  See mri_fitra.m.
 
 Additional M-files for postprocessing the results for publication figures were added.
+
+M-files for analysis of the knee meniscus were added.  See seg_mr_rois.m and mri_mer_fit.m.  The analysis includes eroding the meniscus masks by a pixel to check for edge effects.
