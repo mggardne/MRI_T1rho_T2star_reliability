@@ -57,13 +57,14 @@ sdirs = {sdirs([sdirs.isdir]').name}'; % Subject directories
 nsubj = size(sdirs,1);
 %
 vdirs = {'Visit1'; 'Visit2'};
-nvdir = 2;
+% nvdir = 2;
+nvdir = 1;
 %
 % Loop through Subjects
 %
 % for ks = 1:nsubj
 % for ks = 4:nsubj
-for ks = 9:10
+for ks = 9
 %
 % T1rho Series and Segmentations
 %
