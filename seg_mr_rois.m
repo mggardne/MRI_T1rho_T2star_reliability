@@ -11,7 +11,7 @@
 %
 %     NOTES:  1.  The registered MRI MAT files must be in subdirectories
 %             "Visit1" or "Visit2" in subject directories "MRIR *"
-%             where "*" is the subject number .
+%             where "*" is the subject number.
 %
 %             2.  T1rho MAT files must start with "T1rho_S" and T2* MAT
 %             files must start with "T2star_S".  See rd_dicom.m.
@@ -57,14 +57,11 @@ sdirs = {sdirs([sdirs.isdir]').name}'; % Subject directories
 nsubj = size(sdirs,1);
 %
 vdirs = {'Visit1'; 'Visit2'};
-% nvdir = 2;
-nvdir = 1;
+nvdir = 2;
 %
 % Loop through Subjects
 %
-% for ks = 1:nsubj
-% for ks = 4:nsubj
-for ks = 9
+for ks = 1:nsubj
 %
 % T1rho Series and Segmentations
 %
@@ -114,7 +111,7 @@ for ks = 9
          load(fullfile(svdir,mnam),'iszs','snt','st','v');
          fs = ['S' snt];     % Series number prefaced with a 'S'
 %
-% Parse Series Text for Leg
+% Parse Series Text for Leg and Load
 %
          leg = upper(st(1));
          if strcmpi(leg,'L')
