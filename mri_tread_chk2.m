@@ -79,7 +79,7 @@ for ks = 1:nsubj
       nroi = size(roinams,1);
 %
       if (nrho~=nroi)||(nrho~=nmroi)
-        error([' *** ERROR in mri_fitrt:  Number of T1rho MAT', ...
+        error([' *** ERROR in mri_tread_chk2:  Number of T1rho MAT', ...
                ' files does not match the number of ROI MAT files!']);
       end
       clear nroi nmroi;
@@ -92,7 +92,7 @@ for ks = 1:nsubj
 %
          rhonam = rhonams{km};
          load(fullfile(rdir,rhonam),'iszs','nslt','scmx','sns', ...
-              'snt','splt','st','v');
+              'snt','splt','st');
          npix = prod(iszs);  % Number of pixels in an image
          fs = ['S' snt];     % Series number prefaced with a 'S'
 %
