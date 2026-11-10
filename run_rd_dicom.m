@@ -1,7 +1,7 @@
 %
 % Get Subject Directories and Visit Subdirectories
 %
-rdirs = dir('MRIR*');
+rdirs = dir('MRIR *');
 rdirs = {rdirs([rdirs.isdir]').name}';
 nsubj = size(rdirs,1);
 %

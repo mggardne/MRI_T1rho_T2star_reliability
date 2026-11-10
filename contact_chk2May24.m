@@ -31,7 +31,7 @@ hdrs = {'Subject' 'Visit' 'Result' 'Leg' 'Load' 'Comprt' 'Slice', ...
         'MaxDist'};
 %
 psnam = fullfile(resdir,'contact_chkMay24_');    % Start of PS file name
-pstyp = '_RO2.ps';          % PS file type
+pstyp = '_RO2.ps';      % PS file type
 %
 % Get Subject Directories and Visit Subdirectories
 %

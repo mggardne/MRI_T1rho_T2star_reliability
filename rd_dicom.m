@@ -291,8 +291,8 @@ for k = 1:nr
 %
    matfile = ['T1rho_S' snt '.mat'];
 %
-   save(matfile,'ddir','fnams','iszs','nfile','nsls','nslt', ...
-        'pspcs','splt','scmx','sns','snt','st','v');
+%    save(matfile,'ddir','fnams','iszs','nfile','nsls','nslt', ...
+%         'pspcs','splt','scmx','sns','snt','st','v');
 %
 end
 %
@@ -301,6 +301,7 @@ end
 dirstr = split(pwd,filesep);
 dirstr = [dirstr{end-1} '_' dirstr{end}];
 dirstr = strrep(dirstr,' ','_');
+dirstr = [dirstr '_' strrep(date,'-','')];
 %
 xlsnam = [dirstr '.xlsx'];
 %
@@ -764,8 +765,8 @@ for k = 1:ns
 %
    matfile = ['T2star_S' snt '.mat'];
 %
-   save(matfile,'ddir','etns','fnams','id5','iszs','nfile','nsls', ...
-        'netn','pspcs','scmx','sns','snt','st','v');
+%    save(matfile,'ddir','etns','fnams','id5','iszs','nfile','nsls', ...
+%         'netn','pspcs','scmx','sns','snt','st','v');
 end
 %
 % Write Registration Transformations to the Spreadsheet
