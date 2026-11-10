@@ -16,3 +16,5 @@ Additional M-files for postprocessing the results for publication figures were a
 M-files for analysis of the knee meniscus were added.  See seg_mr_rois.m and mri_mer_fit.m.  The analysis includes eroding the meniscus masks by a pixel to check for edge effects.
 
 M-file, mri_fitrt.m, added for doing tread line analysis on the same slices as the meniscus slices.  See header comments in mri_fitrt.m.
+
+seg_mr_rois.m updated to process T2* segmentations.  mri_merm1_t2s_fit.m drops the longest echo time before calculating T2*.  See header comments.
